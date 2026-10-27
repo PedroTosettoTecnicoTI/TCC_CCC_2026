@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAGE — Sistema de Gestão Escolar</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="ic-user" viewBox="0 0 20 20" fill="currentColor">
+    <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z"/>
+  </symbol>
+  <symbol id="ic-lock" viewBox="0 0 20 20" fill="currentColor">
+    <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd"/>
+  </symbol>
+  <symbol id="ic-search" viewBox="0 0 20 20" fill="currentColor">
+    <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd"/>
+  </symbol>
+  <symbol id="ic-settings" viewBox="0 0 20 20" fill="currentColor">
+    <path fill-rule="evenodd" d="M7.84 1.804A1 1 0 018.82 1h2.36a1 1 0 01.98.804l.331 1.652a6.993 6.993 0 011.929 1.115l1.598-.54a1 1 0 011.186.447l1.18 2.044a1 1 0 01-.205 1.251l-1.267 1.113a7.047 7.047 0 010 2.228l1.267 1.113a1 1 0 01.206 1.25l-1.18 2.045a1 1 0 01-1.187.447l-1.598-.54a6.993 6.993 0 01-1.929 1.115l-.33 1.652a1 1 0 01-.98.804H8.82a1 1 0 01-.98-.804l-.331-1.652a6.993 6.993 0 01-1.929-1.115l-1.598.54a1 1 0 01-1.186-.447l-1.18-2.044a1 1 0 01.205-1.251l1.267-1.114a7.05 7.05 0 010-2.227L1.821 7.773a1 1 0 01-.206-1.25l1.18-2.045a1 1 0 011.187-.447l1.598.54A6.993 6.993 0 017.51 3.456l.33-1.652zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
+  </symbol>
+  <symbol id="ic-logout" viewBox="0 0 20 20" fill="currentColor">
+    <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25zm9.47 4.97a.75.75 0 011.06 0l2.25 2.25a.75.75 0 010 1.06l-2.25 2.25a.75.75 0 11-1.06-1.06l.97-.97H8a.75.75 0 010-1.5h5.44l-.97-.97a.75.75 0 010-1.06z" clip-rule="evenodd"/>
+  </symbol>
+  <symbol id="ic-edit" viewBox="0 0 20 20" fill="currentColor">
+    <path d="M5.433 13.917l1.262-3.155A4 4 0 017.58 9.42l6.92-6.918a2.121 2.121 0 013 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 01-.65-.65z"/>
+    <path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0010 3H4.75A2.75 2.75 0 002 5.75v9.5A2.75 2.75 0 004.75 18h9.5A2.75 2.75 0 0017 15.25V10a.75.75 0 00-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5z"/>
+  </symbol>
+  <symbol id="ic-trash" viewBox="0 0 20 20" fill="currentColor">
+    <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/>
+  </symbol>
+  <symbol id="ic-plus" viewBox="0 0 20 20" fill="currentColor">
+    <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"/>
+  </symbol>
+  <symbol id="ic-download" viewBox="0 0 20 20" fill="currentColor">
+    <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z"/>
+    <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z"/>
+  </symbol>
+  <symbol id="ic-clip" viewBox="0 0 20 20" fill="currentColor">
+    <path fill-rule="evenodd" d="M15.621 4.379a3 3 0 00-4.242 0l-7 7a3 3 0 004.241 4.243h.001l.497-.5a.75.75 0 011.064 1.057l-.498.501-.002.002a4.5 4.5 0 01-6.364-6.364l7-7a4.5 4.5 0 016.368 6.36l-3.455 3.553A2.625 2.625 0 119.52 9.52l3.45-3.451a.75.75 0 111.061 1.06l-3.45 3.451a1.125 1.125 0 001.587 1.595l3.454-3.553a3 3 0 000-4.243z" clip-rule="evenodd"/>
+  </symbol>
+  <symbol id="ic-eye" viewBox="0 0 20 20" fill="currentColor">
+    <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/>
+    <path fill-rule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+  </symbol>
+  <symbol id="ic-doc" viewBox="0 0 20 20" fill="currentColor">
+    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a.75.75 0 01.75-.75h6.5a.75.75 0 010 1.5h-6.5A.75.75 0 016 10zm.75 2.75a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5z" clip-rule="evenodd"/>
+  </symbol>
+  <symbol id="ic-image" viewBox="0 0 20 20" fill="currentColor">
+    <path fill-rule="evenodd" d="M1 5.25A2.25 2.25 0 013.25 3h13.5A2.25 2.25 0 0119 5.25v9.5A2.25 2.25 0 0116.75 17H3.25A2.25 2.25 0 011 14.75v-9.5zm1.5 5.81v3.69c0 .414.336.75.75.75h13.5a.75.75 0 00.75-.75v-2.69l-2.22-2.219a.75.75 0 00-1.06 0l-1.91 1.909.47.47a.75.75 0 11-1.06 1.06L6.53 8.091a.75.75 0 00-1.06 0l-2.97 2.97zM12 7a1 1 0 11-2 0 1 1 0 012 0z" clip-rule="evenodd"/>
+  </symbol>
+  <symbol id="ic-back" viewBox="0 0 20 20" fill="currentColor">
+    <path fill-rule="evenodd" d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z" clip-rule="evenodd"/>
+  </symbol>
+  <symbol id="ic-table" viewBox="0 0 20 20" fill="currentColor">
+    <path fill-rule="evenodd" d="M.99 5.24A2.25 2.25 0 013.25 3h13.5A2.25 2.25 0 0119 5.25l.01 9.5A2.25 2.25 0 0116.76 17H3.26A2.25 2.25 0 011 14.74l-.01-9.5zm8.26 9.52v-.625a.75.75 0 00-.75-.75H3.25a.75.75 0 00-.75.75v.615c0 .414.336.75.75.75H9.5a.75.75 0 00.75-.75v-.615zm1.5 0v-.615a.75.75 0 01.75-.75h5.25a.75.75 0 01.75.75v.615a.75.75 0 01-.75.75H11.5a.75.75 0 01-.75-.75zm6.75-3.63v-.625a.75.75 0 00-.75-.75H11.5a.75.75 0 00-.75.75v.625c0 .414.336.75.75.75h5.25a.75.75 0 00.75-.75zm-8.25 0v-.625a.75.75 0 00-.75-.75H3.25a.75.75 0 00-.75.75v.625c0 .414.336.75.75.75H9.5a.75.75 0 00.75-.75zM17.5 7.5v-.625a.75.75 0 00-.75-.75H11.5a.75.75 0 00-.75.75V7.5c0 .414.336.75.75.75h5.25a.75.75 0 00.75-.75zm-8.25 0v-.625a.75.75 0 00-.75-.75H3.25a.75.75 0 00-.75.75V7.5c0 .414.336.75.75.75H9.5a.75.75 0 00.75-.75z" clip-rule="evenodd"/>
+  </symbol>
+  <symbol id="ic-upload" viewBox="0 0 20 20" fill="currentColor">
+    <path d="M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.129a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636v8.614z"/>
+    <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z"/>
+  </symbol>
+  <symbol id="ic-students" viewBox="0 0 20 20" fill="currentColor">
+    <path d="M10 9a3 3 0 100-6 3 3 0 000 6zM6 8a2 2 0 11-4 0 2 2 0 014 0zM1.49 15.326a.78.78 0 01-.358-.442 3 3 0 014.308-3.516 6.484 6.484 0 00-1.905 3.959c-.023.222-.014.442.025.654a4.97 4.97 0 01-2.07-.655zM16.44 15.98a4.97 4.97 0 002.07-.654.78.78 0 00.357-.442 3 3 0 00-4.308-3.517 6.484 6.484 0 011.907 3.96 2.32 2.32 0 01-.026.654zM18 8a2 2 0 11-4 0 2 2 0 014 0zM5.304 16.19a.844.844 0 01-.277-.71 5 5 0 019.947 0 .843.843 0 01-.277.71A6.975 6.975 0 0110 18a6.974 6.974 0 01-4.696-1.81z"/>
+  </symbol>
+</svg>
+</head>
+<body>
+
+<div id="screen-login" class="screen active">
+  <div class="login-split">
+
+ 
+    <div class="login-brand">
+      <img src="img/logo_ccc.jpg" alt="Colégio Comercial Caçapava" class="login-brand-logo">
+      <h1 class="login-brand-title">Colégio Comercial<br>Caçapava</h1>
+      <p class="login-brand-sub">Fundado em 1956 · Tradição e Excelência</p>
+      <div class="login-brand-divider"></div>
+      <p class="login-brand-desc">Sistema integrado de arquivamento e gestão de alunos com segurança e rastreabilidade total.</p>
+    </div>
+
+    <div class="login-form-panel">
+      <div class="login-form-card">
+        <div class="login-form-header">
+          <div class="sage-badge">SAGE</div>
+          <h2 class="login-form-title">Acesso ao Sistema</h2>
+          <p class="login-form-sub">Sistema de Arquivamento e Gestão Escolar</p>
+        </div>
+
+        <div class="field">
+          <label>Usuário</label>
+          <div class="input-with-icon">
+            <svg class="input-icon"><use href="#ic-user"/></svg>
+            <input type="text" id="inp-user" placeholder="Nome de usuário" autocomplete="username">
+          </div>
+        </div>
+        <div class="field">
+          <label>Senha</label>
+          <div class="input-with-icon">
+            <svg class="input-icon"><use href="#ic-lock"/></svg>
+            <input type="password" id="inp-pass" placeholder="Senha de acesso" autocomplete="current-password">
+          </div>
+        </div>
+
+        <button class="btn btn-login" onclick="doLogin()">Entrar</button>
+
+        <p class="login-form-footer">
+          &copy; 2026 Colégio Comercial Caçapava &mdash; SAGE v2.0
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<div id="screen-home" class="screen">
+  <div class="home-wrap">
+    <div class="home-card">
+
+      <div class="home-header">
+        <img src="img/logo_ccc.jpg" alt="Logo" class="home-logo">
+        <div class="home-header-text">
+          <span class="home-badge">SAGE</span>
+          <h1 class="home-title">Gestão Escolar</h1>
+          <p class="home-sub">Colégio Comercial Caçapava</p>
+        </div>
+      </div>
+
+      <p class="home-section-label">Selecione uma ação</p>
+
+      <div class="home-actions">
+        <button class="home-action-card home-action-primary" onclick="goTo('screen-cadastro')">
+          <div class="hac-icon">
+            <svg width="24" height="24"><use href="#ic-plus"/></svg>
+          </div>
+          <div class="hac-text">
+            <span class="hac-title">Cadastrar Aluno</span>
+            <span class="hac-sub">Registrar novo aluno no sistema</span>
+          </div>
+        </button>
+
+        <button class="home-action-card home-action-secondary" onclick="goTo('screen-encontrar')">
+          <div class="hac-icon">
+            <svg width="24" height="24"><use href="#ic-search"/></svg>
+          </div>
+          <div class="hac-text">
+            <span class="hac-title">Encontrar Aluno</span>
+            <span class="hac-sub">Pesquisar cadastros existentes</span>
+          </div>
+        </button>
+
+        <button class="home-action-card home-action-table" id="btn-dash" onclick="goTo('screen-dashboard')">
+          <div class="hac-icon">
+            <svg width="24" height="24"><use href="#ic-table"/></svg>
+          </div>
+          <div class="hac-text">
+            <span class="hac-title">Tabela de Alunos</span>
+            <span class="hac-sub">Visualizar e gerenciar todos os alunos</span>
+          </div>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<div id="screen-cadastro" class="screen">
+  <button class="back-link" onclick="goTo('screen-home')">
+    <svg width="16" height="16"><use href="#ic-back"/></svg>
+    Voltar
+  </button>
+  <div class="form-card">
+    <div class="form-card-header">
+      <img src="img/logo_ccc.jpg" alt="Logo" class="form-card-logo">
+      <div>
+        <h2>Cadastro de Aluno</h2>
+        <p class="form-card-sub">Preencha os dados do aluno abaixo</p>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>Nome completo <span class="required">*</span></label><input type="text" id="c-nome" placeholder="Nome completo do aluno"></div>
+      <div class="field"><label>E-mail</label><input type="email" id="c-email" placeholder="email@exemplo.com"></div>
+      <div class="field"><label>CPF <span class="required">*</span></label><input type="text" id="c-cpf" placeholder="000.000.000-00" maxlength="14"></div>
+      <div class="field"><label>Nome do Responsável</label><input type="text" id="c-responsavel" placeholder="Nome completo do responsável"></div>
+      <div class="field"><label>Telefone do Aluno</label><input type="tel" id="c-tel" maxlength="15" placeholder="(00) 00000-0000"></div>
+      <div class="field"><label>Telefone do Responsável</label><input type="tel" id="c-tel-resp" maxlength="15" placeholder="(00) 00000-0000"></div>
+      <div class="field"><label>Data de Nascimento</label><input type="date" id="c-nascimento"></div>
+      <div class="field">
+        <label>Responsável falecido</label>
+        <div class="radio-group">
+          <label class="radio-label"><input type="radio" name="falecido" value="sim"> Sim</label>
+          <label class="radio-label"><input type="radio" name="falecido" value="não" checked> Não</label>
+        </div>
+      </div>
+      <div class="field field-full"><label>Endereço</label><input type="text" id="c-end" placeholder="Rua, número, bairro, cidade, CEP"></div>
+    </div>
+    <div class="form-footer">
+      <button class="btn btn-outline" onclick="goTo('screen-home')">Cancelar</button>
+      <button class="btn" id="btn-cadastrar" onclick="cadastrar()">
+        <svg width="16" height="16"><use href="#ic-plus"/></svg>
+        Cadastrar Aluno
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-encontrar" class="screen">
+  <button class="back-link" onclick="goTo('screen-home')">
+    <svg width="16" height="16"><use href="#ic-back"/></svg>
+    Voltar
+  </button>
+  <div class="form-card">
+    <div class="form-card-header">
+      <img src="img/logo_ccc.jpg" alt="Logo" class="form-card-logo">
+      <div>
+        <h2>Pesquisar Aluno</h2>
+        <p class="form-card-sub">Utilize um ou mais filtros para localizar alunos</p>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>Nome do aluno</label><input type="text" id="f-nome" placeholder="Digite o nome"></div>
+      <div class="field"><label>Nome do responsável</label><input type="text" id="f-resp" placeholder="Digite o nome do responsável"></div>
+      <div class="field"><label>CPF</label><input type="text" id="f-cpf" placeholder="000.000.000-00"></div>
+      <div class="field"><label>Busca geral</label><input type="text" id="f-caixa" placeholder="Pesquisar em todos os campos"></div>
+      <div class="field"><label>Data de nascimento</label><input type="date" id="f-nasc"></div>
+    </div>
+    <div class="form-footer">
+      <button class="btn" onclick="encontrar()">
+        <svg width="16" height="16"><use href="#ic-search"/></svg>
+        Pesquisar
+      </button>
+    </div>
+
+    <div id="find-results" style="margin-top:1.6rem;display:none">
+      <div class="table-card">
+        <div class="table-header">Resultados da Pesquisa</div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr>
+              <th>Nome</th><th>CPF</th><th>Nascimento</th><th>Responsável</th><th>Resp. Falecido</th>
+            </tr></thead>
+            <tbody id="find-tbody"></tbody>
+          </table>
+        </div>
+        <div id="find-empty" class="empty-state" style="display:none">Nenhum aluno encontrado para os filtros informados.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div id="screen-dashboard" class="screen">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <img src="img/logo_ccc.jpg" alt="CCC" class="topbar-logo">
+      <div class="topbar-brand">
+        <span class="topbar-brand-name">SAGE</span>
+        <span class="topbar-brand-school">Colégio Comercial Caçapava</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-user">
+        <svg width="15" height="15"><use href="#ic-user"/></svg>
+        <span id="topbar-user">—</span>
+      </div>
+      <button class="topbar-icon-btn" onclick="openSettings()" title="Configurações" id="btn-settings">
+        <svg width="18" height="18"><use href="#ic-settings"/></svg>
+      </button>
+      <button class="topbar-text-btn" onclick="logout()">
+        <svg width="16" height="16"><use href="#ic-logout"/></svg>
+        Sair
+      </button>
+    </div>
+  </header>
+
+  <div class="dash-body">
+
+    <div class="dash-toolbar">
+      <div class="dash-toolbar-left">
+        <button class="btn btn-sm" onclick="goTo('screen-home')">
+          <svg width="15" height="15"><use href="#ic-plus"/></svg>
+          Novo Aluno
+        </button>
+        <button class="btn btn-sm btn-outline" onclick="goTo('screen-encontrar')">
+          <svg width="15" height="15"><use href="#ic-search"/></svg>
+          Pesquisar
+        </button>
+      </div>
+      <div class="dash-toolbar-right">
+        <button class="btn btn-sm btn-teal"   onclick="exportCSV()">
+          <svg width="15" height="15"><use href="#ic-download"/></svg>
+          Exportar CSV
+        </button>
+        <button class="btn btn-sm btn-purple" onclick="exportPDF()">
+          <svg width="15" height="15"><use href="#ic-download"/></svg>
+          Exportar PDF
+        </button>
+      </div>
+    </div>
+
+    
+    <div class="stats-row" id="stats-grid" style="display:none">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-label">Total de alunos</div>
+      </div>
+      <div class="stat-card stat-warn">
+        <div class="stat-value" id="stat-falecidos">0</div>
+        <div class="stat-label">Resp. falecidos</div>
+      </div>
+      <div class="stat-card stat-ok">
+        <div class="stat-value" id="stat-vivos">0</div>
+        <div class="stat-label">Resp. vivos</div>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-header">
+        Alunos Registrados
+        <span id="table-count-badge" class="table-badge"></span>
+      </div>
+      <div id="dash-loading" class="loading-state">
+        <div class="spinner"></div>
+        Carregando registros...
+      </div>
+      <div class="table-scroll">
+        <table id="dash-table" style="display:none">
+          <thead><tr>
+            <th>Nome</th><th>CPF</th><th>Nascimento</th><th>Telefone</th>
+            <th>Responsável</th><th>Resp. Falecido</th><th>Documentos</th><th>Ações</th>
+          </tr></thead>
+          <tbody id="dash-tbody"></tbody>
+        </table>
+      </div>
+      <div id="dash-empty" class="empty-state" style="display:none">
+        Nenhum aluno cadastrado.<br>
+        <small>Clique em "Novo Aluno" para iniciar.</small>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="settings-panel">
+  <div class="settings-head">
+    <div class="settings-head-title">
+      <svg width="18" height="18"><use href="#ic-settings"/></svg>
+      Configurações
+    </div>
+    <button class="settings-close-btn" onclick="closeSettings()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/></svg>
+    </button>
+  </div>
+  <div class="settings-body">
+
+    <div class="settings-section">
+      <h4>Aparência</h4>
+      <div class="theme-toggle">
+        <button class="theme-btn active" id="btn-light" onclick="setTheme('light')">Claro</button>
+        <button class="theme-btn"        id="btn-dark"  onclick="setTheme('dark')">Escuro</button>
+      </div>
+    </div>
+
+    <div class="settings-section" id="section-usuarios">
+      <h4>Gerenciar Usuários</h4>
+      <div id="users-list" style="margin-bottom:.8rem"></div>
+      <button class="btn btn-sm" onclick="openAddUser()">
+        <svg width="14" height="14"><use href="#ic-plus"/></svg>
+        Adicionar Usuário
+      </button>
+    </div>
+
+    <div class="settings-section">
+      <h4>Sobre o Sistema</h4>
+      <div class="about-block">
+        <img src="img/logo_ccc.jpg" alt="Logo" class="about-logo">
+        <div>
+          <p class="about-name">SAGE v2.0</p>
+          <p class="about-desc">Sistema de Arquivamento e Gestão Escolar<br>Colégio Comercial Caçapava &mdash; 1956</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div id="settings-backdrop" onclick="closeSettings()"></div>
+
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>Editar Aluno</h3>
+      <button class="modal-close-btn" onclick="closeModal('modal-edit')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/></svg>
+      </button>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>Nome</label><input type="text" id="e-nome" placeholder="Nome completo"></div>
+      <div class="field"><label>E-mail</label><input type="email" id="e-email" placeholder="email@exemplo.com"></div>
+      <div class="field"><label>CPF</label><input type="text" id="e-cpf" maxlength="14" disabled></div>
+      <div class="field"><label>Nome do Responsável</label><input type="text" id="e-responsavel" placeholder="Nome do responsável"></div>
+      <div class="field"><label>Telefone</label><input type="tel" id="e-tel" maxlength="15" placeholder="(00) 00000-0000"></div>
+      <div class="field"><label>Telefone do Responsável</label><input type="tel" id="e-tel-resp" maxlength="15" placeholder="(00) 00000-0000"></div>
+      <div class="field"><label>Data de Nascimento</label><input type="date" id="e-nascimento"></div>
+      <div class="field">
+        <label>Responsável falecido</label>
+        <div class="radio-group">
+          <label class="radio-label"><input type="radio" name="e-falecido" value="sim"> Sim</label>
+          <label class="radio-label"><input type="radio" name="e-falecido" value="não" checked> Não</label>
+        </div>
+      </div>
+      <div class="field field-full"><label>Endereço</label><input type="text" id="e-end" placeholder="Rua, número, bairro, cidade"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-edit')">Cancelar</button>
+      <button class="btn" onclick="saveEdit()">Salvar Alterações</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="modal-docs">
+  <div class="modal-box modal-wide">
+    <div class="modal-header">
+      <h3>Documentos — <span id="docs-aluno-nome">—</span></h3>
+      <button class="modal-close-btn" onclick="closeModal('modal-docs')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/></svg>
+      </button>
+    </div>
+    <p class="modal-desc">Arquivos PDF e imagens vinculados a este aluno.</p>
+    <div class="doc-dropzone" id="doc-dropzone" onclick="document.getElementById('doc-file-input').click()">
+      <svg width="32" height="32" style="color:var(--muted);margin-bottom:.5rem"><use href="#ic-upload"/></svg>
+      <p class="doc-dropzone-text">Clique ou arraste arquivos aqui</p>
+      <p class="doc-dropzone-sub">PDF, JPG, PNG — até 20 MB por arquivo</p>
+      <input type="file" id="doc-file-input" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp" multiple style="display:none" onchange="handleDocUpload(event)">
+    </div>
+    <div id="docs-list" style="margin-top:1rem"></div>
+    <div id="docs-empty" class="empty-state" style="padding:1rem;font-size:.85rem">Nenhum documento anexado a este aluno.</div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-docs')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-viewer">
+  <div class="modal-box modal-viewer">
+    <div class="modal-header">
+      <h3 id="viewer-title" style="font-size:.95rem">Documento</h3>
+      <div style="display:flex;gap:.5rem">
+        <button class="btn btn-sm btn-teal" onclick="downloadCurrentDoc()">
+          <svg width="14" height="14"><use href="#ic-download"/></svg>
+          Baixar
+        </button>
+        <button class="modal-close-btn" onclick="closeModal('modal-viewer')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="viewer-body" style="width:100%;height:70vh;border-radius:8px;overflow:hidden;background:#111827"></div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="modal-delete">
+  <div class="modal-box modal-sm">
+    <div class="modal-header">
+      <h3>Excluir Aluno</h3>
+    </div>
+    <p class="modal-desc">Esta ação é irreversível e removerá o aluno do sistema.</p>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-delete')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Excluir</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="modal-user">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modal-user-title">Adicionar Usuário</h3>
+      <button class="modal-close-btn" onclick="closeModal('modal-user')">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"/></svg>
+      </button>
+    </div>
+    <div class="field"><label>Nome de usuário</label><input type="text" id="nu-username" placeholder="ex: joao.silva"></div>
+    <div class="field"><label>Senha</label><input type="password" id="nu-pass" placeholder="Mínimo 4 caracteres"></div>
+    <div class="field" id="nu-pass2-wrap"><label>Confirmar senha</label><input type="password" id="nu-pass2" placeholder="Repita a senha"></div>
+    <div class="field">
+      <label>Perfil de acesso</label>
+      <select id="nu-role">
+        <option value="user">Usuário</option>
+        <option value="admin">Administrador</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-user')">Cancelar</button>
+      <button class="btn" onclick="saveUser()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="modal-del-user">
+  <div class="modal-box modal-sm">
+    <div class="modal-header">
+      <h3>Excluir Usuário</h3>
+    </div>
+    <p class="modal-desc" id="del-user-msg">Esta ação não pode ser desfeita.</p>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-del-user')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmDelUser()">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="script.js"></script>
+</body>
+</html>
