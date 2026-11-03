@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAGE — Apresentação TCC 2026</title>
+<meta name="theme-color" content="#071a14">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════════
+   SAGE — Apresentação do TCC (TV / projetor)
+   Palco fixo de 1920×1080 que escala para qualquer tela.
+   Identidade: verde-pinho do brasão do colégio + latão para ênfase.
+   Movimento: o fichário 3D de fundo "vira as páginas" conforme
+   a apresentação avança; os slides entram e saem pelo mesmo eixo.
+═══════════════════════════════════════════════════════════ */
+:root{
+  --bg:#071a14; --bg2:#0b2a20;
+  --ink:#eef7f2; --ink2:#c4d8ce; --muted:#93ad9f;
+  --line:rgba(190,235,212,.16);
+  --panel:rgba(9,32,24,.66);
+  --mint:#6fd1a2; --pine:#2a9b6f; --brass:#e3ae45; --red:#f1857c; --sky:#8cc3ee;
+  --accent:var(--mint);
+  --font-display:"Bricolage Grotesque","Instrument Sans",system-ui,sans-serif;
+  --font-ui:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"Cascadia Code",Consolas,monospace;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:var(--font-ui);color:var(--ink);-webkit-font-smoothing:antialiased;user-select:none;
+  background:radial-gradient(70% 90% at 78% 40%,#14543a 0%,rgba(20,84,58,0) 60%),radial-gradient(60% 70% at 0% 100%,#0f3d2e 0%,rgba(15,61,46,0) 70%),var(--bg)}
+
+#bg3d{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;transition:opacity 1s ease}
+
+/* ── Palco 1920×1080 ── */
+#stage{position:fixed;left:50%;top:50%;width:1920px;height:1080px;z-index:1;transform-origin:center center}
+.slide{position:absolute;inset:0;padding:124px 120px 150px;display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;
+  transition:opacity .55s ease, transform .75s var(--ease)}
+.slide.future{transform:translateX(56px)}
+.slide.past{transform:translateX(-56px)}
+.slide.active{opacity:1;transform:none;pointer-events:auto}
+/* escurece o fundo para garantir leitura à distância */
+.slide::before{content:"";position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(90deg,rgba(7,26,20,.94) 0%,rgba(7,26,20,.86) 58%,rgba(7,26,20,.62) 100%)}
+.slide.cover::before,.slide.closing::before{background:linear-gradient(90deg,rgba(7,26,20,.92) 0%,rgba(7,26,20,.6) 48%,rgba(7,26,20,0) 82%)}
+
+/* ── Chrome fixo ── */
+#brand{position:absolute;left:120px;top:44px;display:flex;align-items:center;gap:18px;z-index:5}
+#brand img{width:52px;height:52px;border-radius:50%;background:#fff;object-fit:cover;box-shadow:0 0 0 3px rgba(255,255,255,.14)}
+#brand b{font-family:var(--font-display);font-weight:650;font-size:26px;letter-spacing:-.01em}
+#brand span{font-size:22px;color:var(--muted);margin-left:2px}
+#progress{position:absolute;left:0;top:0;height:6px;width:0;background:linear-gradient(90deg,var(--pine),var(--mint),var(--brass));transition:width .6s var(--ease);z-index:6}
+
+#nav{position:absolute;left:50%;bottom:36px;transform:translateX(-50%);display:flex;align-items:center;gap:22px;z-index:6;
+  padding:12px 26px;border-radius:999px;background:rgba(7,26,20,.72);border:1px solid var(--line);
+  -webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+  box-shadow:0 18px 40px -16px rgba(0,0,0,.7)}
+.nb{width:48px;height:48px;border-radius:50%;border:none;background:rgba(255,255,255,.1);color:var(--ink);cursor:pointer;display:grid;place-items:center;
+  transition:background .15s, transform .35s var(--ease)}
+.nb:hover{background:rgba(255,255,255,.2)}
+.nb:active{transform:scale(.88);transition-duration:.06s}
+.nb svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+#dots{display:flex;align-items:center;gap:10px}
+.dot{width:11px;height:11px;border-radius:99px;background:rgba(255,255,255,.26);cursor:pointer;transition:width .45s var(--ease),background .25s}
+.dot:hover{background:rgba(255,255,255,.5)}
+.dot.on{width:36px;background:var(--mint)}
+#count{font-family:var(--font-mono);font-size:22px;color:var(--muted);min-width:84px;text-align:center;font-variant-numeric:tabular-nums}
+
+/* ── Tipografia ── */
+.chap{display:flex;align-items:baseline;gap:18px;margin-bottom:14px}
+.chap i{font-style:normal;font-family:var(--font-display);font-weight:700;font-size:44px;color:var(--brass);letter-spacing:-.02em}
+.chap span{font-size:28px;font-weight:600;color:var(--accent)}
+h2{font-family:var(--font-display);font-optical-sizing:auto;font-weight:700;font-size:76px;line-height:1.02;letter-spacing:-.035em;max-width:1500px;margin-bottom:34px}
+h3{font-family:var(--font-display);font-weight:650;font-size:36px;letter-spacing:-.02em;line-height:1.15}
+p,li{font-size:30px;line-height:1.5;color:var(--ink2)}
+strong{color:var(--ink);font-weight:650}
+code{font-family:var(--font-mono);font-size:.86em;color:var(--accent)}
+svg.i{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* ── Painéis ── */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:28px;padding:34px 40px;
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.grid{display:grid;gap:28px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}
+.tag{display:inline-flex;align-items:center;gap:10px;padding:8px 20px;border-radius:99px;font-size:24px;font-weight:600;
+  background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 36%,transparent)}
+.ico{width:76px;height:76px;border-radius:22px;display:grid;place-items:center;font-size:40px;
+  background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);flex-shrink:0}
+.kicker{font-size:26px;font-weight:650;color:var(--accent);margin-bottom:14px}
+
+/* lista com divisórias (estrutura = agrupamento) */
+.rows{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:36px;padding:26px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:none;padding-top:0}
+.row:last-child{padding-bottom:0}
+.row .txt{flex:1}
+.row h3{margin-bottom:8px}
+.row p{font-size:28px}
+
+ul.ck{list-style:none;display:flex;flex-direction:column;gap:16px}
+ul.ck li{display:flex;gap:18px;align-items:flex-start;font-size:29px;line-height:1.38}
+ul.ck li svg{margin-top:6px;width:30px;height:30px;color:var(--accent)}
+
+/* ── Código ── */
+.code{background:#0a1411;border:1px solid #223a2f;border-radius:24px;box-shadow:0 30px 60px -24px rgba(0,0,0,.8);overflow:hidden}
+.code .bar{display:flex;justify-content:space-between;padding:14px 26px;border-bottom:1px solid #223a2f;font-family:var(--font-mono);font-size:20px;color:#7f9a8d}
+.code .bar b{font-weight:600;color:var(--mint)}
+.code pre{padding:22px 28px;font-family:var(--font-mono);font-size:19.5px;line-height:1.55;color:#d6e6dd;white-space:pre;overflow:hidden}
+.kw{color:#ff8f86;font-weight:600}.fn{color:#d9b8ff}.str{color:#a9dcff}.cm{color:#7f9a8d;font-style:italic}.nm{color:#f2cc60;font-weight:600}
+
+/* ── Arquitetura ── */
+.layers{display:grid;grid-template-columns:1fr 64px 1fr 64px 1fr;align-items:stretch}
+.layers .arrow{display:grid;place-items:center;color:var(--muted)}
+.layers .arrow svg{width:48px;height:48px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.layer{display:flex;flex-direction:column;gap:22px}
+.layer .head{display:flex;align-items:center;gap:20px}
+.layer .abbr{width:76px;height:76px;border-radius:22px;display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:30px;
+  background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}
+.layer small{display:block;font-family:var(--font-mono);font-size:21px;color:var(--accent);margin-top:4px}
+
+/* ── Tabela ── */
+table{width:100%;border-collapse:collapse;font-size:28px}
+th,td{padding:24px 30px;text-align:left}
+thead th{font-size:24px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--line)}
+thead th.us{color:var(--mint);font-size:28px;font-weight:700}
+tbody tr+tr td{border-top:1px solid var(--line)}
+tbody td:first-child{font-weight:650;color:var(--ink)}
+td.us{background:rgba(111,209,162,.09);color:var(--mint);font-weight:700}
+td.warn{color:var(--brass)}td.bad{color:var(--red)}
+
+/* ── Capa e encerramento ── */
+.cover,.closing{justify-content:center}
+.cover .wordmark{font-family:var(--font-display);font-weight:800;font-size:260px;line-height:.9;letter-spacing:-.06em;
+  background:linear-gradient(120deg,#f2fbf6 0%,var(--mint) 55%,#a6e9c8 100%);-webkit-background-clip:text;background-clip:text;color:transparent;margin:6px 0 28px -8px}
+.cover h1{font-family:var(--font-display);font-weight:600;font-size:54px;letter-spacing:-.025em;line-height:1.1;max-width:1100px;margin-bottom:18px}
+.cover .lead{font-size:32px;max-width:1000px;color:var(--ink2);margin-bottom:44px}
+.names{display:flex;flex-wrap:wrap;gap:16px;max-width:1100px;margin-bottom:34px}
+.names span{padding:12px 28px;border-radius:99px;font-size:30px;font-weight:600;background:rgba(255,255,255,.08);border:1px solid var(--line)}
+.foot{font-size:24px;color:var(--muted)}
+.closing h2{font-size:150px;line-height:.95;margin-bottom:22px}
+.closing .lead{font-size:36px;max-width:1000px;margin-bottom:44px}
+
+/* ── Entrada orquestrada (um só movimento, curto) ── */
+.slide.active .rv{animation:rv .8s var(--ease) both;animation-delay:calc(var(--d,0) * 80ms + 120ms)}
+@keyframes rv{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+  .slide.future,.slide.past{transform:none}
+}
+@media (prefers-reduced-transparency:reduce){
+  .panel,#nav{-webkit-backdrop-filter:none;backdrop-filter:none;background:#0b2a20}
+}
+@media print{html,body{overflow:visible}#bg3d{display:none}}
+</style>
+</head>
+<body>
+<!-- Ícones -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/></symbol>
+  <symbol id="shield-ok" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="scan" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.2-4.2"/></symbol>
+  <symbol id="dice" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/></symbol>
+  <symbol id="ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></symbol>
+  <symbol id="chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="file" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="print" viewBox="0 0 24 24"><path d="M7 9V3h10v6"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 14h10v7H7z"/></symbol>
+  <symbol id="key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/></symbol>
+  <symbol id="user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+  <symbol id="bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="type" viewBox="0 0 24 24"><path d="M4 6h16M9 6v13M15 6v13M7 19h4M13 19h4"/></symbol>
+  <symbol id="moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+  <symbol id="bell" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/></symbol>
+  <symbol id="phone" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M11 18h2"/></symbol>
+  <symbol id="cloud" viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.5-8A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/></symbol>
+  <symbol id="check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+  <symbol id="warn" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18.5v.01"/></symbol>
+</svg>
+
+<canvas id="bg3d" aria-hidden="true"></canvas>
+
+<div id="stage">
+  <div id="progress"></div>
+  <div id="brand"><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAG/Ab8DASIAAhEBAxEB/8QAHQABAAEEAwEAAAAAAAAAAAAAAAgCBQYHAQMJBP/EAFUQAAEDAwIDAgYLCwoEBgMBAAACAwQBBQYHEggREyEiFCMxMkJSFTNBQ1FTYWJjcoIJFiRxc4GDkpOioxc0RJGhsrPCw9MYJVRkNbHB0uLwlOPy8//EABsBAQACAwEBAAAAAAAAAAAAAAABAwIEBQYH/8QALBEBAAIBAwQBAwMEAwAAAAAAAAIDBAESEwURIjIUIzFCITNSFSQ0YgZDkv/aAAwDAQACEQMRAD8A9UwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHHOhR1m/hB3Vdvujt9w0xmHFpoNg8tVsueeRZUtmm1xqAismqK/KpHcp/Wd+D8VWh2fXJmyWjMW409/2mNcGVxXHfqUc5EtX5NO7bubg8lRy93mddXkV8lTGtQs4senWH3PMcjfq3BtrFXV7PPX5dqEdvaqteQbE56Qhv1ZPvpTynXV9rds6iNxBTHcw4keLzIbijHcjcwfEILnTWuFTZVHOvmb/AGx97ZX5jZnyeA5NPwxOvGdUuX/U+EU//wBP4gc75s5/rRDclj1OdPIda3ko8pHjVjVenCtpJYMdRNcybJvBfBIblwe7Xlop4yU/Xnv2c1mrNNsA4nOIe2JzjKdabpi9pneMgMw2Nm9HxiENrR3PxhnPN8+CHum71KV7aU5ita9laU5kH8/TxQcLfg+URdSFZxi6nUNSaTmKLS3uryRvRVfURvr6aFkmdENX7HrThDGXWZHgzyXaxJ0TfRS40hHnor+tRX5wypzYTnwz8ZtkUrTn2UKudfdoRv1V4y8U0p1Ml4BdcauE9qAyyuTPiPIr0VuI30RVHl8mz+s3Tp/ndk1IxG3Znjjj67dcm6Os9ZGxfL51PcC6GTVZPjhr+rKQUdRv4RvIbHdWDg5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcAcU5HPP4KFHk8naYZqbqniGkmMO5Rmd1TEio7jKKdrz7nxbaPTWFc56Vx3zZmtVEeUseU5Nb8Pxq7ZXdm3lQrPDcnSfBkVdcq22jevYj3eyhFSHqPxWcRrfhul9qjYFiMqu1i4zHK1kPIr6dF1R36fk0cvpFkmsEx682jALRi2Z3ul7uUW3oiXCeqnLwxyiOS18vlJ7KIZPNp4MB0H4mMX14ul8tdjtEu3+w6W3Gay3m+pKbX75sR5nufrmluNrWTI3cgtuhWFzHIz1zZZ9kltL77y33OmxFp/n/KNmrMdW5wu8WibM9uRZ6z/BFrc8nsbLX4tf2O5+oZFxz4Vf8R1ctWrFsjrXCuaIlUSaI/m0+L5iP0iEI/UWHHuyp2Ys9/4pPaXcLulOmuPNWv72bdebjVH4TPuMVDzjy+Xy0rsR8hH/AI0eG/DcWxeuqWDW9u0Vjym0XCGyjxC+p3EPIb9BdF1p2kjNJuIvTrVLHWLlFyK3W6dRmjky3TJSGn4y+XwL89Hl79Ow0Vxl6543ltjjaL6dSkZHdb7MYpI9jq9dDexylUNo6fnrW5SnkDYyPj2Yng23wd6gXbUDRe2P3+SuVcLW85an3l+e9RvlsWv7FaFu447NdLroFcnLdVe2BPiT5SEe7Hbc7/8AVz3/AGDLuG7S6TpHpTa8XujyF3Fe6dOqjlyS+52rRT5EeT8xsyfbYV0hvwZ8dD8eUjputOd5C0fiDahTOzE45ox8AWUWOXpbLxBmSyi72m4PrlM08/prr3FkpaLIg5ZwNXSzZQjL9CdSH8bfotbiIkii/E/Mbeb97+Y424fezplxyTUeAStY7BFRz9ubp4zZ+wCnFndiR4Zwa3+6NW25/ffjF0W0vwN+0vw0L9Cr/U37CZ2mF2sV709x26Y66y5bZNtYrG6PmbOnQxfINFomouktu051RufsvPYhsNvXRlHTX4WhHt6PgNF4zojxW6Dqds2k2X2LIceU6uQ3Fnp6eyq6+ovzPsOBhpXPHyZX7PdufisutltXD7mlbypHKZbHIEVC/SlOU2Mbf0mxf2DRn3PFD9uxbOMiluURbKvx0UV6G9tla3K/xDjIuHLiX14vMOVrXmVrs1oiK50iQK7+nTt37EN9zf8APWs2TrjBsehHC5esdwqK8xGrCraWVto3ueP7H31/CvZ1F7/hCLIXWZPydY+EUQLXbHtarnrDqtLb6zNvtMu6tr2eL760Vb/gNuEteAq9+yWhNLe4vv2a8S4nP4EL2P8A+qYxwnaYNu8LGSyXmkLkZ7Fn9Ovrx+gthmn5+S1/bI06U6l5mnTGdonp1b5Tl7z299Ra0ehEciMNuNo/U8Yv1N5g0cefxLI3/wA26eIfioyzJ8kk4roddnotux9tyXc71HXTx3T9T6FH7+82twb6xan6t2HILhny4cqLan2IcKYxF6C3nNi1v7/Q+I8nrmkdeNNrFw3aA2/AoUlh7IczuDVLrNRTp1eQxTqbEfAyhdW+z5/ykguHe32zRfhkgZFfKVYbrb3MhnVXTYvxlOp/c2BsY2t3y5zn9mz29V9PHMzkaeffXb0ZHFo2ty3Lf2Pcl07NtK+f+Yy6jjVadleZ5i6NaZXDir1WyO6ZVc5UJl1K7rcJMaiN7D7jniG0b6f/AFDHI3i47xV8MW1x6v8AKfhTFe3alxUtlj99xuv66DNsUdTnZHfs8EzTnlUsWI5A7k+NWrIHrZItjtzhsSqw5Ht8aq0b9jn4vIXxC6VIdjdpqrAASAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOpyuxH4jTeJa8WrONSMixLGYyKWLDmHFX6+SFbGfC+ps6DHP0OTb61ueTxdPX3mdaj6hYhpljb+UZndm4UNnns7ea3l+4hCOffX8hB7S3SbJ9fYrtqxuj+HaW1uDki4Ouv7595lfC5s8W4v9xH0hLnZN867owgnVieaYvndlRf8Pu7Fzty3nGEPMr50q42vYv+0hJMlf8AEvxkoxrIpNXMVxqTKbiwa+Y+3E9sr9t/+GSQsuT6DaC3Ow6IWeXFgXG5PoYRFZpvc6i0djkpfwr+FfrkTNdcKz3ht1wVq7jUZz2LlXRy4wJmzkwz1/bIr3yV3rRT5K0DWz7J7IT/APSberuSZlhOBPXHTfCU5JdG1tR41ubX09iF9zfRHp0R6ncIXZ7qNxG6Tau4fmmrl0f6a/w72NhyNkHwXzH2NiO51Nn1/ezZsH7oxiVLay1cdOr5S7ueRiJIYcYdX8FFrrRz9wt10wfW/jFuluumb49HwLCre74RGQtFFznU/M985/P7iPmOBTkXQyv8Wfm+3j0wWHk+H4/rTYK9SsdtuDKdR6cR/vsOfYcX/EN16JyW9XdB7EzqLiylrkwaQ5sO6xe1/p9zqVQv19m8z7D8LsWFYjasLszC/Y20sNx4yHl760QjyGRITt5h0a8XTS3m1/JHC6cBug9yl+ENw71DRSu+rLFwX0/3+ZsjTbQPSzSaq5GF4ozFmLRsXMdrV5+qPyizZdK+7U4r3vJULYYtNflCInzCsAhtKAVgCjZ8oKwBR9QcqFYA+WkZttnoMtoS16qDWWnHDppVpTfZuR4bYVxZs9HQWtT63ui36jfqUNrlHZ8oVzrhP2Q24s9ENUtXtXMVXbcfW9icdhu2OSWX0eJQ+/8Ahbi0V8zxfT7foz6OPfURjF8GtGkllcbZcvVfCJyUe9QWPMR9tz+xtZMHypNc6o6E6a6us7M1x1iTJbR0mZzXclMo+Rwlz7sLtCc6feaM+B8FcyZptjmZ49nd0xXO1RfDqvsr8RzcrvQ2v00dzYbp0Hn8Q7dzu2Ka1WW3LiWllFId9ir781e+vZy+p6fJH4jVzmkXElw3vKumjeVOZribXjF49cKePbR9Gjyfs9n1DaWqGuE/TfQuJqLklnRaMlu0VpuNaFu9arMt5HOjda+700c3F/UqGtTCrEr36w27GgeNTWm6ZHmlt0fwOZLWqzSm5E1cGRtcXcve2O56m/8AafUMzx/XHWbh8l23H+I+zKuOPT9jcfJIfjFsOeo/6/8AifXNA6N6faxIT/xIY7jELJF2efIkPxp63OvNX3+u+ivp7P8AENp6v8aGmGpOjN3xRzE7sxe7xFrHbiSUNrZiv19+37+/Rvsc8z3A0oXT1nPJsnt/gmxZr1bL9a495s89mZBlI6zEhle9C0fDSpc/hIsfc/X8jc0fnUufV9iW7mv2JWvzFtbO/s+Zv58iUu6geixrueqM1dDko3/IVkNgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACj0wKqchXl5TA9W9V8a0ew6TmGSuK6Ta+hHjIp4yS/XzG0fj5GMaAcRON652DwhiiLdfYSP+Z2ta++zX10euj5SVHPDSexcdedF8e1twxeP3VLbE+LvkWudt78OR5KV+pXsov5Dz9xrPtYOHa9ZFplDlUssqSvwSTWT7RFc/6tj7Hp9PzKU+A9Ua03+6R84quHWLrJjtbzYY7LOXWplzwJfLlSW36bC+z9T4KkSc/qeHv+vT7vn0Z0F080WsX8pOaX6Lf8icZ8OmZJOc5oZ39q1srX5Oe/2zz1/wBhfdLeInGdcMtyDFMbxS5SLLamm6N3eQx+Cza1r30bPe/mb/PpzI06LaAawaxWW049qleLxadO8cc2Rra6vpvyV7/MQj1EeuvtR72TkxDDMYwLH4uM4jZItrtkWnJmNHb2Jp2f3jFOFvsh+sNsVNq08wbH5HhdhwyxW6R8dEtzLLn9aEGRdNNOzsKqU5jnT3KGf3dHSuEPto42FYBC0AAAAAAAAAAAAAAAAKCsAde3s58zV+tGgeE642ePbcrpKYkwd64U6M5sejVX5/L0DaXZyHYSrnCFkdk2FSWMb0b0xdpAYREsuK2pfTRT0G20c/8A0If8B1grmGTZxdMis8KdZ3EMOeDSYyHmES3HFr7m/wCYTkudstt6t0m13SGxLhym6svMPN70LRXypUjyGI6Z6TYXpNbbjaMKgrhw7jNXLqxu7Ga7KI2I+BHc7Pxho34XJbCf4QRT1+4sszbzZ3SnRHpw2oEr2MVJiRUPvyZXuNsN1R09m/xfMWO7cfmEsNX+5W+VkMBPffgy6xXnNn1G/GFl4U8dt1u4ssktmUobcvFpRcqwUPI8x/r7FuN/P6C1/o3D0Bq3SqK05dnuGLRxqZ5Ws7tJtL6D8SWL63RnIFY79lyaBT8NtEmvJynk5rb9dH76PJU3UhdF0Iz6+8O17vuVWzV3RLwa2Z5BmIpJUt7wduU35lVr+fRHZ89HYSFtL8ikWK1dlxEXCsejjqGl12b+VN+zn27OZlq6eNO3TwuXcFCCshugAAAAAAAAAAAAAAAAAAAAAAAAAAppTn21KFKb90pecQhPNa6USQtzzULVrily+5ae6GXJy2YZaXPB7ne+t0PCXK/Pp4zZ6iEef29TlQlq5GTwfZKTKY+n2fWuVhOQybTc2JyOm9DXIRVdfzeuQC1Z0c1I4VMzZzzBblKpZet+B3RHb0foJSP/AKhZ36m8FOqWm1hXmdqvELIEQUOPzfAW3GJbKPXb7/jP75vThB1VVrjg990w1KSi9yrQ022tycii1zYL3NPjOfpoWivP7H4zBxrtfmT2Ww2TXjFeNvTaZpa/l2ROri3y3UQxJtCPb5L/AND8KK9vb6Hu/LbeHzFtWdTtQv8AiN1Mvlws8NxlxixWRlxbba4jnrt+p5n1103+odWK8B2JWPVRzKLjcE3LFotaSLbaHaV39b1Hl+mhH7/p8yVrKaIRRpDexCPVM2/i05E/8n8XahCNie4VnIIdQAAAAAAAAAAAAAAAAAAAAAAAAAAAo6ZWAIqcSuiWWwcwgcQejjdfvmsXjLhDZR4yahCNnUp66+n4taPTb7DZWhHEDi2uFjW5Bou33u305Xa1PV8ZFc/zo+U26pvdXtNV6lR0aUYfl2oGm2nEa4X+WluXLYitoZXLcbps67laef00d/ud+uwlpcPBLfBRrvr9imiWP+GXRxEq8SkLpb7Yhym99z5/qI+eQ70YufETrfrlH1OtNzcbVCfQ3cJbnZbo0Gv9E2enXZ6HxnjD4tJNFtSuKfL3tRc+u8pFife5ybk83VC5X0EVHqI/UQegmI4bj2BWCNjGL2pi3W2G3sZZZ7KU/H875xg58OfOs3z8IMlT5hWY9f8APcJxRnq5NltptqPhlzG2/wDzqXODcoNyhM3CDLbfjPt9Rl1FdyFo9YydnTXTX7PuAAWAAAAAAAAAAAAAAAAAAAAAAAWbJ8ms2H4/OyjIrgzCttsYckSpDvkQ2j3QNZcWmXysN0IyadbpFGZMxlu3NL9Wj7lELr+pVZbODqz2SzaBY07aG2ec5pcuSpHpvrcrz/8AQ+bUNy3cVfDZcZOA9SjtwR1oTMlOxdJDDnmL/OgiDohxL53w+uysTuNgcmWir3jrROouNIhSPT6fP1/UMXCysmNGXCc/R6ZP1bowvr0Ts2d/d5hDPgGxxr79tRs0tTfTsVJHsbbvpEddxzl9hvoftCy3viM1m4nnV6Z6P4c9ZYc9vp3O4uP9RbDPu1WvzGEfxF+5yJb6P6YWHSTBrdhtip1GoiOo9I/6l9fnuBfCUc+6F8PWLOirlT4AcmTrAAAAAAAAAOOdDkACgAVgAAAAAAAAAACgrAAoAFYAAHWtFF0UdgAjjxNZzrVpbaLU/o9jFvftb66sSlM29yS/Gf59zYw36CyJWfX3iomN26Xqvf8AKrBar7ObhtTJa/AoqKr+MYY8YhH2D09S1RPpqrT5TDNWdPcc1KwO8YjlO1uFLjOfhG3tjOcq7HkfPR5SXIzcCd/nvQW1B4SYelWCSdQ9RdTmpsnZ07fHgsb1zX3KeLb67i/3/UN58A+S5pedNrhbL8y49aLNN8GtMt6td/L3xj6jfJH6/L0CJ0OXqdrrfsP0YZvjd6ZsTi4EKSz7X0Op35a/jEIR/D6fxh6bYBgti07xC2YbjjNWINtZow3z89Xk76+zzg5/TaY2ZHNT4wZOVlBWQ9OAAAAAAAAAAAAAAAAAAAAAOmtK15ESuLK73jUrUjDuGewS1NNXl5u5Xl5HbVEfevs+whtxf7MlurycyElgymCzx/3t+/ONs1W2u0w1r7vNfQb2U/PQlz8+faMYJg4tjdjxGxQ8Yx+AiLbrawhhhlCeyiDAta7HoJarQvO9YMWsT8NhxthcuZb6PLotfmU8nM2pVaOXY5Qhvr3e2+JDWfHNAMXk1lY9ZpXh+SSY/mdz2xG/5iO5+Uf+YGeTOFMPVKbCbXiNtxyJXDLVBg2uUw3IZbiReg2ptaO5XZ+LkZP7n5z54zDUdhLDCKNoQjYlKfRofR7hDZr/AEh+ioA4qFmjinIqLbdLnFtMakiVXkmtdiSywM5tkpSW5Ta41a+v3iVE74Vz2asq8nacHzsToj7XUYkMrR8KVkd+JjiutmkTTuK4kmPc8ufarWiFVotiBT3FvcvS+BBCL8qvHhvm3Nmeo2Fad21d3zDJrfaIvLklcp7ZVfyIR5V1+qRszX7oVhltUuNheJXW8/8AdS10hMU/r7/9hCfLMwyPO709f8wu8q53F/ySHl+Z9G38WWcx7vLX9enOf00pZf3Q/VZbm6DhGKxW/Jse8KfX+vvboXKx/dFM4acRXINNrNKY9NUOY8wtH69FkSDKcW0p1PztDbmH4BfbmzXySWYS22P27nizDu1q+qZtn7afWA8b+i+ZLRDvdzfxaSvuf81psY8nx/mfr8iQMWVHnMIkw3kPNOU3IWhe9KqHlovhO4ikI3/yWXD/APNi/wC+XfT3VXXPhfujFvv+O3yPYV9xVou0Zxthf5Bz2tC/qdhm6+L1W+H+VB6feWhx2VpyqYXpfqZiuq2JxsvxGe2/Dkeej02XPTQv55mvZ+Izd+E9LNN0VQAIWAAAo7aVOF17O0pWttG/fUg5xJ8Z8x2XJwbRq4oZZb6jE2/Jr5/0cX/c/UDUzMyGHDfNJrUjiC0n0qp0Mtylludy7IMfx0qv6NHaR1yr7otHbWtvC9NXJSPQduVw6G/7DbayFcl+RLkrmS5D77z6+o888ta1rcKDDe8rk9dyJ/tpRq+6H6u0X24diSUfDVuT/vGV4390amb0N5hpoijPpybbcP8ATcR/nIY+n0/Gb9/T2Gwcf4fNcspZRMsmmF9eZc8xclnwX/H2GKqvqfULPR6HaY8UOj+qbyLfY8pRBuq/Jbbl+Cvr+pRftn2DbiK0VTsrzPKe4cLvENbUUmSNKbstDPfotl9h5dfsNr6htjQri2zjS26R8A1uYuKrShfg/hVxZWzOt/5Tqd9xH75m7eJ1azXwyobHoHWleYpSvMt1suUS7QWbnBmsyokpFHmHml70ONr8ypcDJ3tJaaufcNV8SeKZXmWi+UWDDpbjVylQl8mW6d6W3y8ZH/SI5o/ObWOt3yBhZXyQ2IzcHehitMMSVm+UQ6oyTIkIc6breysCJ7239f03PzeofZq/xoacaede2Y4599V6TzRVmC7+Csr+e/8A+zmai45cj1hhZra8Ph356JiGRsttQ2ovievI37HG33Px1R8zYs+zSjgB5NM3bWC+c68udLNa19yv5d//AG9n1zFw9brq/wC1woeq48LHE/qZqbqtc7BmkakqDcYtHI3gMNfQti29/crX0N/0n0ZM6tedKdhYcRwnFsFtSLJiNhhWyG35GYzeyhf+3l2Gbq4td1cPrS3auaHIBDbAAAAAAAAAAAAAAAAAAB1r3bedCCvGRw7ZjJziurmAWaVco0pttc5mIhbkqHLb58n20N9+vZRHtfbvJ29lKFCk80dgauViwy4bJvMOw6g8XOo8BOn1gueWz2a9x2vQ6Dmz1HJbiO4TO4Z+HW36GYs7WXIam5Fddi7jLSnuJ8niW/mUN2Ubpz9z+oqRTs7CWrjdP4J75z3G1fw0OwAh1AAAW+625u6QXYT/AJjhrW6WeXZ5Pg7zfcX5i/XNs1pzPiuVvj3CIuJKb3tuUM9JdmllY3P+qMuturVNIsLfu8NfO9T1+B2xuvur9f7HnkALlcrheLlMul1mLlTJb3Xeee9sW4565t3ixy5zINY7rZGJG+Bjf/LGfnue/r/adz9GaZKZvD5t87J8YXHHcev+V3mJjuNW16ZcZq+gy015FrLcTu4KtO7bhOHvagX6Ct6+3ljwhjxffjQfcQj6/njRGDi892zVkuhXBjhmn7DF7zttnJMh50c2PN74kNz5iPT+uvtJKMRWmWksNIQhCE7E7fcLfar9b7qp6kVxe9vz0L9wutKrp7lCx7vGoprh9NzsptPhuVnt15hPW+6QmJkZ+nfZeRvQouIIbXbTVHxOhLmjmZr1I0YQ4zAl9zIMWRTexMYp75F+LfR7iPTN7wpDcyO3KYrvZebQtCvhO9SKKOxNOVOQYQhGHo5AAWBRvKy05DeYOOWK5364uUbiWyK/MfX6jbaKrX/5BGuvbTuiTxx6+SLCx/I3i0+jEy5RqyL1JbX32YjldnQ/G5/cINl4zLKrhneVXXL7x2TLtKclr3+h1Pe/2fiyzmE3z7qOTPLu3hnejujeX615N7AYzH6DLHTcuE95HiISP9z5hiFntVwv91h2Ozx/Cp9yfbiRWfXcc7jbZ6u6J6T2TR3A4OJWvY882nrTpNUd+VIry3uV/OIL+l9P+XPvYtGkHDZppo5CarZLWibd20cl3WcjqSFfUr739g21s7ByoVdnIze2hVCqOyDjp0qYxm+nWH6h2pdkzGww7lEXSvY81zWivwoX5UfmMp9w47PlJTOuFnu0hpXp9e9CrsvDYN0kXXT+4uVXaKu13v2Z9df5uv12HOXcX7jnZ6Zu1NOZwpFFHaQQhGHqHFfIcgLGkeLHTH+U/SC6Q4kKsi7WhPsnbUopzWpxvyt/bRvofTwt6qtasaPWe+PzKP3KCj2NuK/hfb9P7aOm59s2+tveYTp1pJg2lKbq3hVuch0vUrwuZueWve52/D5nnEtXhlpdvgzs5KCshtAAAAAAAAAAAAAAAAAAAAAAAAODkAAAAAAAp9w+S4P0iQnpVfeW1r/8z6/cLfeWevaJ0dPpsOI/cCuz01eOGQ3Jy8ZDdbo+5vXLmvvrX+Uc3nwFbzHQkvR1+ew+42v9GUFT5pb+4uWJWdzI8qsmNt+fcrhEifo3HEI6n756cRmG7bsjwXEbGEdNCEfFnnVoc+wxrRgjkzl0vvggt0/SP7P856cZDiVIKVz7c3vZ9NHqFtLt9Io5KZzWKBcXLU91GPfPPMuuV+ou7wIbCV0ZXVEhz9TuIMJO1D7jbyJCHPHNr7nzDYdOGVOv6bYWMXz2Sgr8Kc8cx7YXlDzTyEONr3oX5KpNYQ5rlnnoukT2lzz0f6ZkT1z+96QifH3v2qd39nxS/mFex06MnvBmoPittxh3KMiZFXzQ4faVt3QOK+Q5OK+QJcfAaS4xLwuxcPWWuNrVRyew3b6cvgecQ2v+HVZu34DQXG1FXM4eb26x/RpUJ5X4vCEU/wA5LVzP2JvM4D6gKXzfVv8A4HsWZyLXSNcJDXUasVvenfb59NH+IelbXk7fOPPr7nm9HZ1VyFhbiN71j5o+f49B6DpXzr5DKH2e36FD+2dgAM3bAAAAAAAADg5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAChXmFZQrzAdu7yO16w6RgOseW42uP0WW7g4/F+ew/32/75gZOrj40eVeLNC1dssWipVnRSJdaJr21ib61bX+jWuv65BUw2PnvVMX4+TPV3QJci2zI1wiObJMR5uQyv6RtzeevenOZWvUTCLPmVqcQpi6xUP7Kegv00fmX2Hj8SX4OeIyNplc16e5tLWnGrtK6kaW/7XAl/wC253PqLJ0bnRc2GPbxz/NOG74M49IW/bHGkJX39i1V7pjk+yXO3fzqH3PXR30G0GJDT7aXWXEKQvzVJ9IxjKsYnyl1k2+YtSl+e0tf9z4C2E3osrFhrDfWw5l9vovR3O+hwutqebnWiZZHqUXsZ67P1yzyYsiK905Ud9H10FcZ/oSWZCPPbWWuXCfG+yy3GXFX4PFn9Hr+Z3+51C+W3OpDbtY95j0pVC9i1o9AxF7wdt5fT7iN/wCoXWZ1LlARdEbOtH8XK/03COy+GRP8Gyo0uPKZS+wui0Lp2KPp8tDVdivz9oe7V/gy1+OQs2e08262hxC6VSvtSVy07OtjX8+js9wwfWbDlahaXZThrdEVeu1rfjsbvIl+qPF/v7DNziqKeTmYL7IckNjxTW24hfTfb2Lb8WtHqA35xk6Ov6a6mvZBarfysGUKXMZUnzGJfv6P8/2zQZU+b5dHx79mrZ/DZqExpnrJj9/mP0Ztz73gE9dfIhh/udT9p0z1aarStOZ4reL9M9AOD3iTiZpZoumOYS6pya2s9OG9JXz9kmG/dov10e6ZVu90LOhX9CaWAKEL5jf8hm9crBRv+Qb/AJAKwdHW7/T6iN+zmd4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA4r5DkAfBPgRrlGdhy2G3o7yOm604nmhaDzd4nOGC86RXaTleLxHpWHSl70rbpvXbPmL+j+eel/bSh8k6HGnxnIkuOh9l5GxbS0b0LT+IlzuodPhnw7TeLg+uTu1i4DMfv77160luScflL8ZW3SE9SCtfzPTb/F5nb5CKuZcPGteCvLrftPLo4y3/AEyH+GsL+fvb/wBQrnB47J6Xdj+GkGX6H8W2faRtIsE6n3w4432IgyF+Mit/QOf5Fkt8R42tBskZbpcsmfx+VSnfZubDiEp+2inT/tPN5623BhfTft8pH12FoPptuMZRdXkR7Njd0mvOeL2RoS1ktrF6nm0fT1g9J8j140UZarc7Xq9jFEe/RvZBtba/sGp8n4s9L4i/Y/Ebfccourni2GYDK0IW5+k/0zSWn3BfrXm7yHLrY0YvA/6y6L2Ofo2G/Gfr7CUWnfC/jWj7ipVptcq73Wvb7KvI7/T+LQj0C6Da1nmZHnrB1YHbs0uuzMNSnGGLk+j8Cs8ZfiLY38/4x/5/oGxbLKbiT/He1S/EPfUPmegzIvt8N9H10HUWM699btmRVxZK46699hfTMvxK709j9i3qeIf2c/mL/wDmYtcl9fozPj2emv8AKI/+GwW2U4w8tv0H0dD/AG/4hE21RPZc2HarvSTMetsnkiTF89Hr09cu/wAtDXN7lOOIgZHCcWh1xHg61o9BZlmPZDHu8bkpaESEeej4Cp1qbvPYs+qWnGOarYhNw7JWd8aVTxbqfbI73oOI+Wh5e6u6NZhovk68fyqH4lz+ZT0e0TW/mfSfRnrp7hjGc4JiuoVhk45l9lZuUCUjktp5PPZ89CvQX+IqnDu1eodMhn6d/wAnjyVxn5EF5EyLIWw8wvqIWz3Foc+v72S31S4Asltzz900mvjV0jL8ZS23Bzovop6iHvMX9vYRvybSjVDD3uhlOAXqEtHprhLcb/aN+LMXj7sHKxJ+UEiNIOPXJLBEZsmqdsfvsZvY2i6w0IRK+2j2tf7hJLG+L3h6yRlLidSbdb3fibolcJxP4+pQ8wfAZja+n4HK3+p0Vl7sWnWf5S6ljGsIvtwUvtrWNb1rMt7o43U82vw2b3pvc+J7QK1NLcd1Xx5dW/Qjy6PL/Ub51Nay+MP7/b8nCeHzC5uT3d/+nT0LiwYyPjF++bP1DSOmPAbqHkbrVw1Hkt4xB9OGhxEqUtH+G2TZ0x0owjSaw+wGEWRuGy5XfIeXTe/Jc9dxfp1LHaxbMzL/AHPB24BiVxx61dTIr2u95BLX1bhcVt7KLc7e42j0GUeggzCvlOaHFfKQ7MfsqAASAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADjlQp2FYA+F+1W+QrqPQYy1/CpFDuYiR2EcmWENfVod3Oo51DHbopomiacy1Xqzt3aN7Ytl5vzFoLsWLKsxx/CbFLyPJrmxb7dBR1Hn3V9lAxs2aQ82Cy63S1SHoj0l7ej6cx7Ic1xfGELkZVlFrtaG/8AqZSEEYddeMzJM5nLtWnERyw2pjqN+Hr/AJ9J/F8R/fI3T5cy6yV3C4yFypLnnvPL3uLHM8dndQhXPZWnhP4pNE4v4P8Afh1+mv8Ao0J9f+QQOJrROcvpt5p4Kv8A7mE+j/IQJCG+/wC1/wCcw5ml/UJvU/E8qxvNMTnIxm+W+7oYX12Vw3kOHUhbm/qMObPnoPLu1Xm4WOYiZZrpKhTPjoz2xwkPpXxc3i1PRrPqa37IwN/TRdWUePZb+ej3wzhdvbtfU9Z+70JsF0RPtDMh5XJfPY59cu1VUrTka2wS627IrBLVY58eVHkM+FQ32V9xxfr/AOGZNimQOXdqrEzZSSn99Hwmb09GTprCDJB06FYMG991v9h7Xv6nsXF3/kUH0oZo2jpttoQg7wEdtNFGz5SsAJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFrvF2g2S2SbxdJTcWHDQt9951XJDaEeWp5f8AEXxAXvXLKV9NxcXGLa8v2Jib/bPp1/P/ALhJX7oBqo/ZMbtWllmkbHsgrWVc1/8AaN17jf23P7hA4wm8p13O8uCAPqA3Lw1aGv6tX+Re7tAo9jGP1bXP/wC6c+Ib/wBT/wCZi89RROyeyD49GuHHMNXm03ij6LFjlF7PZGYhex/8h8YSfxbhO0rxOKh56x1yV5HjPDJryHkfs0dw3DDs1rXGRDxyQiEhhHTRDe7mz6h80m1XSCvqSretHz9m82IQd2GFCEGNs6e4HER0/vDsKEbOn/4egw/J+G/R/KmVtuYui1vOf0m2r6Dn+3+0NneMcKSzYznXW0bptYM84X8hcUzLlZTpvP5eyCkIr17N/wB1s+LR75s+v3CQuMzYyL7GlxZDbkaR1HEPIX4vpnz2qV4CuS53PGRXGy1W22x7VDRb7a302W/MRv8AMb+LGxbRrx7G5LfOVJZotynJdUb9h9laciwwXtk6B9PAp/D/AP7L1GfbfR1EeQoejhLu7gAFgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCysor5APLHi2yZzKeIDKV9Rey0PN2xj9G3/ubzUBmGs3hH8ruc9fz/vhn/wCOsw8qfN86zkypi17PGfFnqlwyYBH060TxuxLjIbmSoaJ9w2p5fhD6KLXT7HmfYPLOGw3Lnxo7/tL77ba/yfUPZy3I6cCOhvzaNoMoO5/x+vvKc2BZPjnsUtcxHTWytfcQss8aVcGPaJj7CPUNtPRmn0LbebStC/cUYjd8Foii5NmrTf8AFL8hs6Tdi/Dn/wBbGV3W4Oe2TFrPmW44v2xzeULbcYeW2+3sW35+85MnLnoAAMGX2q6x1yfZRf8ANrbC6e8yHG9/sU06/wCe/wDhFft9pgFrZkSlIYkNvPRm19RxllHtzhsS3My6eMlrQj1GUegVzdrCsnZouYAK3RAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAoqVnFQPKzivxpeNa+ZYypja3c5LdwYr+Ubb/AM+81GTj+6A6XOT7ZZtW7Wx1F2rnbrqhHux3K+Lc/Rrqv9oQcKZvnvVKeDJnFQttxxHTb8Wv1/UPXrRzMY+eaYY1mEblzudsYdeT5Nj2ynUR+Ze48iCXnAprnHsEx7RzJ3+hDnP+EWJ5a+4h9ftkf7ftjf6QzrbnQsqFFvHNPOnkKdgQvmVmb2y3XG0W+5I/Cojby6ebvMIuVjjxV/8Ahd0Qj0Ni0LbNjcqfCcLM9JdlF1ELGq0QZD/i4NnlfXWfRbsakTZyWHHd9G/51s9D6P65nMm0RJqvwpb9fmddew+yNCjRWUNxWG20U9zYTvasMGDAHWbniE7qo3rZc8xSfMWZpZb1FvMZL7NdqvST8B9UuNGlsKYlNpW2v3KmA3S13PFpfsjEkL6Hr/8AvINk8TXfD0bH7CosVjyCPd29leSJFPPQXlNeVDBuwsjZ6OwABYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAALNkFhteTWaXj96hIlQLgyuPJZX5i21+Wh5ba/aGXzQzMF2uVVb9hnr6louS/fkfFufSN//sPV5VKcu0xbPdPsU1KxyTiuY2pudBfpz2V89C6eatC/QXT4TDZ3cvqfT4Z8P9nj5s+UIccQtDjDi0Lb8xaF7CRGs/BhqHp/JfvGFR3sosVK70dFH4dFR89Hvn10EenkdB5cd9taFt+LWhaNjiHDF4u7Evw5+aZegHHBGixoWJazvvoU2ijbN+SjfRfyyv8A3o5+Tv8ALykybFk+P5PARcsdvEO4RXKdx6M8lxH9dDxo6f1z77JkeSYy8iZjmQXS0L9eBKWwv+GZuvi9dnR4XvZze3Q+S53m2WeGu43SexDjN+e6+uiEJ/PU8ooevevr77Nsg6rZa++/3GIyJK33F/6hu/S/hT1m1dlx8j1yyS/Q7Knv+A3G4LfnSvk8Zv8AB0fvh16erfI/ZglJjWsVr1PyB60aWqpdbVbXk+y2Q1p+CIXz9oY+Pf8AJ8xHu8/MNrU7UlixPDrBhNih45i1sZt9qgt7GYzKOVKUL/Ts8pk6le/83PKh0vMNPs1YfbotC/RO8Bc15esckWR2lwtbi+ihfoeegveN5S1dKUjSV0bl09z1zJFoo5TvUMRumE9SSiRa5CGe/wA9qqdiDJpcM65+DLys6IyFtMobcc3rQg7zFugAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB11XTy1KvgIwcYOtWY4A1YsA02WqPkeWObG5CNm9pG+iNiKOdyi1rXy3hRfdwQ3pNUfp7laHZ+YiDjHCBqciCi/XjiCymFk7iOutUZ5a2WV+pv39+hsDRXN9Z4WXzdI9aLG/NnwInhkHKYkXlEuDNV8qdTp02NufqeZ5K+euVNOTOz3ikCDj8ZyQ3QAAAAAAAHX00cvJQwXONFNKtRebuZ4Habo9Tt8IWxse/aI5L/ALTPins+UK51ws99Eb7hwF6B3BzqRYV9ttPVj3JSqfxKLK7XwG6A257qyrbe7nT1JV0coj+HsJG8vloOXy0DW/p+N/BhWE6Q6a6cR+hhWF2y09na6wxTrK/Sdq/7TNOmc9nylQbNdcK/TRRs+UrACwAAAoKudD5m5EdxbraJCFrb89CV+YDutt6ymwY4mGq+XiHATPkohxfCXqI6z6/MbR+MuqV7/UIR5hqDjN/11y/O9REO3Oy6ZTY9lxXHmab13C8r381tt+m5vbc/UMns3GPmVoz614rq3o/KxGDenm2Y0pbjm9G+uxK10Wjvo8oc/wCfDv2ml4ChrzCsOgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKfgIvcY2n2Quu4rrRh9qXcblgs1EmTEbb3rfib6Lrs+VFUV/XJRnQ42pS+2vcCi+nnhsYXpdq1hOreNx8gw+8sPUWhFXo++nWjLr6C0eWlSrU7VfCNKMfXkWaXlqKxWnJllFd70lfqNo8q6mM3DRCwYtfrxqfpTjdqhZvLt7kNlb61twnN60LqtxDf1PcI7/8JOuOqbk3ULVfPIrGWtLou2QJLLcqKjY56fT7iEfMR9slpTuyK4bIQ83Yzxba1XLP8XvEXD4ULDMruHsRaLbNRslSkdRtC5e/z/T+p9f2wm20vajk4QLgXXOdQuLfTnENRMZg2i6YTVykpq3ub2F1bYXJQ+ivvaF+I7htHWTibzVGof8AItoNjse85GldGps2SmrrEZzn326UpX0PTWvuI7KDsqxczWEJTuSn6iPdKq05EWF5Dxt6fxKZFkNjxbOYCKdWbbbc1Vuc238DFUefX5Ni6khcLyj77sVteTrslwtC7lGQ/wCBzkbH2OfoL+Uh0qruTRkgPnaktP05s1otPwpUdu/5Av7qwUFYAFG/5CsADgpArAAAp7OflHOvKpied6kYTpva03jOsmt9miuK6Ta5L3LqueohHlXX8QVznpD7sqUttFO9U61Ot+TcncYrqNmzGF6eXrOmGvCm7VbnJ7SKe+9zmj+sinhukMnW/SRWtOXaz35vJp7ciY2+zcOhbrb03F+Lo36Dfc9clrXZXHPZBtHis1Z1A05i4xacIfgWljKbhW2P36UnqUt6/c5t17nk313V9Qw/AM/4dOG2dc7ZedVJuSZfd3UffBclVfm83G/h6fNtvZvX9J21LNw+31HFlpDetIdU50l+XYlwX0zW6dOUtiteaK9/3zuOI3/KXnXWx8Nmkml07TuzY5ZJN/nRvB7bbYlG37i4/wAvFuL988vphz5zun/cwYBqNj8/TjXC18S+C2CRmuD36T7M1ct1FvoZccb6bnmdiPP6iFr9PxZnF+lXvi7y7EWLbpxerFh2MTfZObeLwz0FvueToMI9P3DcXDBgd9070YsGM5NSqLklK5L7Cv6NVbm/p/m5m3UoontC+jD3w36/k5aRRtGw7Dg5IdbQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABRs+Uo2fKdxxUDQNm0Audp4n7tro9kEebAulucb8EU3VD0V/Yw2jtp56Om24ai0YkQtJOLrPsYzRxmFMyh1TlpkyOSEP0W51Ed/6T++jYTSdQilK02c+VCKHFVhmYanZLYsbppXdJsCLdY/4fCdZq3MgubOtvf9sirR4zubFor55Ll5ONshvp/klelCNiCO/E9rneMZdiaRaYN1n5zk1UMMJj13rhsL8rn1/7iPGF4x3SXUTR3GMlRgWd3XMZj8ZCLDbcjldyG5T6f06cvmegaq0v4O8pvESZqHqXnWRWPPrjNXLRJtspvfG+v3PGb+X7PuBOTddOGyEHVwo2S76Y8QOVaUzshmzWYFlbkKQtxfQXI8QtbjaP0izavEJxAX/SHJ8SxPD8MjZPdsmU/SkJ2WthVKc20N030Qvz1rX+oaX0dgZPhfGtPsOZZWvILi5Z1sOXF+N0FyadNtaO5Q+bVTIssyjjKRMwnEq5XMwOCirdspNpFqrY33++vs898OfC/WvG2Q99zeOGcUkObmcPTnUzBbzgmST+5GZn1Q5FlL+jfp55szO9UcG0zhxJ+c5HEtDE9/weM5JryotzZv8A/QjHfsV1w4h9VMMvmXaYfeDj+ITaS6Kkzm35EivUbeVTufKy3TZ9ctmRUjcVOv8AfLcifFXiuCWyXAh7nuyTPc7iHEevTqI/gfPDa+bOuEkuU53hzuKt5199FtRjjjCZCLo7KQ3F6fr9RfZT85crLfLPkltZvFhu0O6QZCN7MqI+h9hdPmLRXlUi5wkPMamcOF/0lvdULdtDkuyuoX6DblN7f99Z2cEGbexenmWYLkbi2HsEnyFvIX6DHf3/AMRt8L4Zuk5Q/wBkjYmdYfcMkkYZDy60PZDDT1JVramtqlso5IXzWxu3o7jiPc9OlTH52uel1lzlrTe45pCbyJ2Q3EpbqoXvo4tui0I5+YnuLRXy+6aL4M4y8rv2o3EHe0Iou/XFceK6r0I6O+5/po/RmlJOJI1dw3VXWpuezCvTGSeyVlcW+hDjyGPGLQjqfR7Nn1Aosz58UZwekieXLtK6cuRqfhz1bjax6Z2zIXHm/ZSPTwS7Mor5kpvy/r9i/wA5eNV8v1CxS3wa6daaOZhOlvqbW37Itwm4qKI89bjhDpaXR1hvZ7ypy5EaeIrhoZ1HayvP3r7drndIto/5Ba1u06EJxvvuUb/L9NFDbWls3VyfbJ0rVm0Y/bJS36eBRrQ+49sY2U9sWv095nSm0e6gMLqYZUPJH/hPzS2aw6BR7Bf0ImrtrblhubL3b1mOn4vf9dhaDWeb8N3D/ojAfu2eapZW1jMpa3GMXcuaOncXEe99NtHUf9D/ADmfaFaG5rpBrTnF2irgJwe/r6kVmjtet1N+9Hd8lNm9xBvO84fjGTyIErILBCuL1qe8IgrksoXVhz10fAS1aqOen6nvFH7g+wG/RpmX6xZHZKWJzNpDarbaunRHgkFta6o5/mcR+obcxbQ3SrDsnueY2HCbfGvV1mvzpM5SOo5V95yrji0VX7XzWtXmcvKbBo2ilKU2f2FVe2lQ2qcaFcIwUdPvncU8qFRDaAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHA5UOQBQFo5lYAweTpPg0nPI2py7C3TJYrdWqT261S4tGzZsXX06cjFNOOH60ad6l5ZqbGv1xny8pquq2ZiEfg29zqLohaPQ9r/UNxgKeCDW+tsbP5WnN2temUJqRfpqPBWVuPIZoylde+5zr8CDTGlXBJpozpxa4uq2HsXXIXG+vMWta+cerlOfQpVFe2iCVvOnwDlzJVTw4WT3zQ00BwjJ9FeJ3LsMg4teEYTfmV+ATvBVriocb8cxSr/wBRb7f5kGD8SGKagabawZjcMBxq8XG26l2Lwd7wOO450X1rRRfajzO+j+O4egNE8xVNKhry6bDZs0R1vmMXzRjhLVheI2e4XW/JtHgKEQIy33FT5a/Hv8m/UW445+YxXh/4PtMl6bY/fNTtP25OUSmXH5TUzf4ne4vpt7OfoN1R/USx2cuVKFWyleaQt+FDdGU0XtHtBtStFNd8gkY1b4T2m187eS5tUvsV5b0bG6eovxf1CUCPqHZ2e7U57K0IX00wojsg5KCsBeoKwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/9k=" alt="Brasão do Colégio Comercial Caçapava"><div><b>Colégio Comercial Caçapava</b><span> TCC 2026</span></div></div>
+
+  <!-- ── 1 · CAPA ── -->
+  <section class="slide cover active" data-title="Capa" data-scene="hero">
+    <p class="kicker rv" style="--d:0">Trabalho de Conclusão de Curso, 2026</p>
+    <div class="wordmark rv" style="--d:1">SAGE</div>
+    <h1 class="rv" style="--d:2">Sistema de Arquivamento e Gestão Escolar</h1>
+    <p class="lead rv" style="--d:3">Plataforma web para digitalizar prontuários, achar qualquer aluno em segundos e guardar tudo com segurança.</p>
+    <div class="names rv" style="--d:4"><span>Alanis</span><span>João Pedro</span><span>Maitê</span><span>Pedro Tosetto</span><span>Sara</span></div>
+    <p class="foot rv" style="--d:5">Colégio Comercial Caçapava, desde 1956</p>
+  </section>
+
+  <!-- ── 2 · INTRODUÇÃO ── -->
+  <section class="slide future" data-title="Introdução" data-scene="side">
+    <div class="chap rv"><i>1</i><span>Introdução</span></div>
+    <h2 class="rv" style="--d:1">Contexto e motivação</h2>
+    <p class="rv" style="--d:2;font-size:36px;line-height:1.5;max-width:1560px;margin-bottom:44px;color:var(--ink)">
+      O Colégio tem mais de seis décadas de história e milhares de prontuários em arquivos de papel. Digitalizar com método é urgente para garantir <strong style="color:var(--mint)">segurança dos documentos</strong>, <strong style="color:var(--mint)">conformidade legal</strong> e <strong style="color:var(--mint)">rapidez no atendimento</strong>.
+    </p>
+    <div class="grid g2" style="max-width:1620px">
+      <div class="panel rv" style="--d:3;--accent:var(--red)">
+        <p class="kicker" style="display:flex;align-items:center;gap:12px"><svg class="i" style="width:34px;height:34px"><use href="#warn"/></svg>Como era</p>
+        <ul class="ck" style="--accent:var(--red)">
+          <li><svg class="i"><use href="#ban"/></svg>Papel sujeito a mofo, traça e extravio</li>
+          <li><svg class="i"><use href="#ban"/></svg>Busca lenta em gavetas e arquivos</li>
+          <li><svg class="i"><use href="#ban"/></svg>Sem registro de quem consultou ou alterou</li>
+          <li><svg class="i"><use href="#ban"/></svg>Nenhuma cópia de segurança das fichas</li>
+        </ul>
+      </div>
+      <div class="panel rv" style="--d:4;--accent:var(--mint)">
+        <p class="kicker" style="display:flex;align-items:center;gap:12px"><svg class="i" style="width:34px;height:34px"><use href="#shield-ok"/></svg>Proposta do SAGE</p>
+        <ul class="ck">
+          <li><svg class="i"><use href="#check"/></svg>Prontuário 100% digital, com anexos</li>
+          <li><svg class="i"><use href="#check"/></svg>Busca instantânea por nome, CPF ou responsável</li>
+          <li><svg class="i"><use href="#check"/></svg>Registro permanente de auditoria (LGPD)</li>
+          <li><svg class="i"><use href="#check"/></svg>Relatórios em PDF e CSV com um clique</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 3 · OBJETIVOS ── -->
+  <section class="slide future" data-title="Objetivos" data-scene="side">
+    <div class="chap rv"><i>2</i><span>Objetivos</span></div>
+    <h2 class="rv" style="--d:1">O que nos propusemos a entregar</h2>
+    <div class="panel rv" style="--d:2;margin-bottom:24px;padding:28px 38px;border-color:rgba(111,209,162,.4);background:rgba(18,84,58,.4);max-width:1680px">
+      <p class="kicker">Objetivo geral</p>
+      <p style="font-size:31px;line-height:1.42;color:var(--ink)">Projetar e desenvolver uma solução web completa para <strong style="color:var(--mint)">digitalizar, buscar e guardar com segurança</strong> os dados escolares, simples para a secretaria e sem custo de licença.</p>
+    </div>
+    <div class="grid g2" style="max-width:1680px;gap:22px">
+      <div class="panel rv" style="--d:3;padding:22px 32px"><h3 style="font-size:30px;margin-bottom:6px">CRUD completo com validações</h3><p style="font-size:25px">Validação matemática de CPF e exclusão lógica (soft delete).</p></div>
+      <div class="panel rv" style="--d:4;padding:22px 32px"><h3 style="font-size:30px;margin-bottom:6px">Prontuário digital anexo</h3><p style="font-size:25px">Upload de PDF e imagens com checagem do tipo real do arquivo.</p></div>
+      <div class="panel rv" style="--d:5;padding:22px 32px"><h3 style="font-size:30px;margin-bottom:6px">Controle de acesso por perfil</h3><p style="font-size:25px">Administrador gerencia; usuário comum só consulta.</p></div>
+      <div class="panel rv" style="--d:6;padding:22px 32px"><h3 style="font-size:30px;margin-bottom:6px">Auditoria e exportações</h3><p style="font-size:25px">Registro de IP e horário, mais PDF e CSV instantâneos.</p></div>
+    </div>
+  </section>
+
+  <!-- ── 4 · PROBLEMA ── -->
+  <section class="slide future" data-title="Problema" data-scene="side" style="--accent:var(--red)">
+    <div class="chap rv"><i>3</i><span>Problema</span></div>
+    <h2 class="rv" style="--d:1">Diagnóstico da situação</h2>
+    <div class="rows panel rv" style="--d:2;max-width:1680px;padding:36px 52px">
+      <div class="row"><div class="ico"><svg class="i"><use href="#folder"/></svg></div><div class="txt"><h3>Volume físico excessivo</h3><p>Dezenas de gavetas e caixas com pastas de alunos, com risco real de deterioração, traças e acidentes.</p></div><span class="tag">Vulnerabilidade física</span></div>
+      <div class="row"><div class="ico"><svg class="i"><use href="#shield"/></svg></div><div class="txt"><h3>Rastreabilidade inexistente</h3><p>Planilhas soltas e anotações não mostram quem alterou dados sensíveis, o que fere a LGPD.</p></div><span class="tag">Inconformidade com a LGPD</span></div>
+      <div class="row"><div class="ico"><svg class="i"><use href="#clock"/></svg></div><div class="txt"><h3>Lentidão operacional</h3><p>Achar um prontuário antigo para emitir uma 2ª via pode levar horas ou dias, sem índice digital.</p></div><span class="tag">Custo de tempo e pessoal</span></div>
+    </div>
+  </section>
+
+  <!-- ── 5 · ARQUITETURA ── -->
+  <section class="slide future" data-title="Arquitetura" data-scene="side">
+    <div class="chap rv"><i>4</i><span>Metodologia</span></div>
+    <h2 class="rv" style="--d:1">Arquitetura em três camadas</h2>
+    <div class="layers rv" style="--d:2;max-width:1680px">
+      <div class="panel layer" style="--accent:var(--sky)">
+        <div class="head"><div class="abbr">UI</div><div><h3>Frontend SPA</h3><small>HTML5, CSS3, JavaScript</small></div></div>
+        <ul class="ck" style="gap:12px"><li style="font-size:27px"><svg class="i"><use href="#check"/></svg>Página única, sem recarregar</li><li style="font-size:27px"><svg class="i"><use href="#check"/></svg>Validação de CPF e máscaras</li><li style="font-size:27px"><svg class="i"><use href="#check"/></svg>Tema claro e escuro</li><li style="font-size:27px"><svg class="i"><use href="#check"/></svg>Chamadas assíncronas (Fetch)</li></ul>
+      </div>
+      <div class="arrow"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="panel layer" style="--accent:var(--mint)">
+        <div class="head"><div class="abbr">API</div><div><h3>Backend REST</h3><small>PHP 8, PDO, JSON</small></div></div>
+        <ul class="ck" style="gap:12px"><li style="font-size:27px"><svg class="i"><use href="#check"/></svg>Endpoints REST sem estado</li><li style="font-size:27px"><svg class="i"><use href="#check"/></svg>Sessões seguras e perfis</li><li style="font-size:27px"><svg class="i"><use href="#check"/></svg>Upload com nome em hash</li><li style="font-size:27px"><svg class="i"><use href="#check"/></svg>Consultas 100% preparadas</li></ul>
+      </div>
+      <div class="arrow"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
+      <div class="panel layer" style="--accent:var(--brass)">
+        <div class="head"><div class="abbr">BD</div><div><h3>Banco relacional</h3><small>MySQL 8, InnoDB, UTF-8</small></div></div>
+        <ul class="ck" style="gap:12px"><li style="font-size:27px"><svg class="i"><use href="#check"/></svg>Chaves estrangeiras</li><li style="font-size:27px"><svg class="i"><use href="#check"/></svg>Triggers de proteção</li><li style="font-size:27px"><svg class="i"><use href="#check"/></svg>Índices em CPF e nome</li><li style="font-size:27px"><svg class="i"><use href="#check"/></svg>Tabela de auditoria</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 6 · BANCO ── -->
+  <section class="slide future" data-title="Banco de dados" data-scene="side" style="--accent:var(--brass)">
+    <div class="chap rv"><i>5</i><span>Implementação: banco de dados</span></div>
+    <h2 class="rv" style="--d:1">Modelagem relacional e triggers</h2>
+    <div class="grid" style="grid-template-columns:.9fr 1.2fr;gap:36px;max-width:1680px;align-items:center">
+      <div class="rows panel rv" style="--d:2;padding:34px 40px">
+        <div class="row" style="padding:22px 0;display:block"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><code style="font-size:32px;font-weight:600">students</code><span class="tag" style="font-size:20px;padding:5px 16px">Principal</span></div><p style="font-size:26px">Cadastro dos alunos, CPF único, responsável e soft delete.</p></div>
+        <div class="row" style="padding:22px 0;display:block"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><code style="font-size:32px;font-weight:600">student_documents</code><span class="tag" style="font-size:20px;padding:5px 16px">1 para N</span></div><p style="font-size:26px">Metadados dos anexos: nome original, hash, tamanho e tipo real.</p></div>
+        <div class="row" style="padding:22px 0;display:block"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><code style="font-size:32px;font-weight:600">audit_log</code><span class="tag" style="font-size:20px;padding:5px 16px">Auditoria</span></div><p style="font-size:26px">Histórico de inserções, edições e exclusões com IP e horário.</p></div>
+      </div>
+      <div class="code rv" style="--d:3"><div class="bar"><span>Trigger de integridade</span><b>MySQL 8</b></div>
+<pre><span class="cm">-- Bloqueia a exclusão do último administrador</span>
+<span class="kw">CREATE TRIGGER</span> tr_users_before_delete
+<span class="kw">BEFORE DELETE ON</span> users
+<span class="kw">FOR EACH ROW BEGIN</span>
+  <span class="kw">DECLARE</span> admin_count <span class="kw">INT</span>;
+  <span class="kw">SELECT COUNT</span>(*) <span class="kw">INTO</span> admin_count
+    <span class="kw">FROM</span> users
+    <span class="kw">WHERE</span> role = <span class="str">'admin'</span> <span class="kw">AND</span> is_active = <span class="nm">1</span>;
+
+  <span class="kw">IF</span> OLD.role = <span class="str">'admin'</span> <span class="kw">AND</span> admin_count &lt;= <span class="nm">1</span> <span class="kw">THEN</span>
+    <span class="kw">SIGNAL SQLSTATE</span> <span class="str">'45000'</span>
+    <span class="kw">SET MESSAGE_TEXT</span> =
+      <span class="str">'Operação cancelada: último admin.'</span>;
+  <span class="kw">END IF</span>;
+<span class="kw">END</span>;</pre></div>
+    </div>
+  </section>
+
+  <!-- ── 7 · BACKEND ── -->
+  <section class="slide future" data-title="Back-end" data-scene="side">
+    <div class="chap rv"><i>5</i><span>Implementação: back-end</span></div>
+    <h2 class="rv" style="--d:1">APIs REST e segurança no servidor</h2>
+    <div class="grid" style="grid-template-columns:1.25fr 1fr;gap:36px;max-width:1680px;align-items:center">
+      <div class="code rv" style="--d:2"><div class="bar"><span>students_api.php</span><b>PHP 8</b></div>
+<pre><span class="cm">// Proteção por perfil no endpoint de escrita</span>
+<span class="kw">if</span> ($data->action === <span class="str">'create'</span>) {
+  <span class="kw">if</span> ($_SESSION[<span class="str">'role'</span>] !== <span class="str">'admin'</span>) {
+    jsonOut(<span class="nm">403</span>, [<span class="str">'message'</span> => <span class="str">'Apenas administradores.'</span>]);
+  }
+  <span class="cm">// Validação matemática de CPF</span>
+  <span class="kw">if</span> (!Student::validCpf($data->cpf)) {
+    jsonOut(<span class="nm">400</span>, [<span class="str">'message'</span> => <span class="str">'CPF inválido.'</span>]);
+  }
+  <span class="cm">// Sem SQL Injection: consulta preparada</span>
+  $stmt = $db->prepare(
+    <span class="str">"INSERT INTO students (nome, cpf, email)
+     VALUES (:nome, :cpf, :email)"</span>
+  );
+  $stmt->execute([<span class="str">':nome'</span> => trim($data->nome),
+    <span class="str">':cpf'</span> => trim($data->cpf), <span class="str">':email'</span> => trim($data->email)]);
+}</pre></div>
+      <div class="rows panel rv" style="--d:3;--accent:var(--mint);padding:30px 38px">
+        <div class="row" style="padding:22px 0;gap:24px"><div class="ico" style="width:64px;height:64px;font-size:34px"><svg class="i"><use href="#shield"/></svg></div><div class="txt"><h3 style="font-size:31px;margin-bottom:4px">Zero SQL Injection</h3><p style="font-size:25px;line-height:1.35">Prepared statements via PDO em todos os fluxos de dados.</p></div></div>
+        <div class="row" style="padding:22px 0;gap:24px"><div class="ico" style="width:64px;height:64px;font-size:34px"><svg class="i"><use href="#key"/></svg></div><div class="txt"><h3 style="font-size:31px;margin-bottom:4px">Senhas com bcrypt</h3><p style="font-size:25px;line-height:1.35"><code>password_hash()</code> gera um sal aleatório para cada senha.</p></div></div>
+        <div class="row" style="padding:22px 0;gap:24px"><div class="ico" style="width:64px;height:64px;font-size:34px"><svg class="i"><use href="#user"/></svg></div><div class="txt"><h3 style="font-size:31px;margin-bottom:4px">Sessão e perfis</h3><p style="font-size:25px;line-height:1.35">O servidor valida a sessão antes de cada rota crítica.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 8 · FRONTEND ── -->
+  <section class="slide future" data-title="Front-end" data-scene="side" style="--accent:var(--sky)">
+    <div class="chap rv"><i>5</i><span>Implementação: front-end</span></div>
+    <h2 class="rv" style="--d:1">Experiência de página única</h2>
+    <div class="grid" style="grid-template-columns:1fr 1.25fr;gap:36px;max-width:1680px;align-items:center">
+      <div class="rows panel rv" style="--d:2;padding:30px 38px">
+        <div class="row" style="padding:22px 0;gap:24px"><div class="ico" style="width:64px;height:64px;font-size:34px"><svg class="i"><use href="#bolt"/></svg></div><div class="txt"><h3 style="font-size:31px;margin-bottom:4px">Troca de telas imediata</h3><p style="font-size:25px;line-height:1.35">Painel, cadastro e busca sem recarregar a página.</p></div></div>
+        <div class="row" style="padding:22px 0;gap:24px"><div class="ico" style="width:64px;height:64px;font-size:34px"><svg class="i"><use href="#type"/></svg></div><div class="txt"><h3 style="font-size:31px;margin-bottom:4px">Máscaras ao digitar</h3><p style="font-size:25px;line-height:1.35">CPF e telefone se formatam na hora, sem dados truncados.</p></div></div>
+        <div class="row" style="padding:22px 0;gap:24px"><div class="ico" style="width:64px;height:64px;font-size:34px"><svg class="i"><use href="#moon"/></svg></div><div class="txt"><h3 style="font-size:31px;margin-bottom:4px">Tema claro e escuro</h3><p style="font-size:25px;line-height:1.35">Preferência guardada em <code>localStorage</code>.</p></div></div>
+      </div>
+      <div class="code rv" style="--d:3"><div class="bar"><span>script.js</span><b>JavaScript puro</b></div>
+<pre><span class="cm">// Troca de telas sem biblioteca externa</span>
+<span class="kw">function</span> <span class="fn">goTo</span>(screenId) {
+  document.querySelectorAll(<span class="str">'.screen'</span>)
+    .forEach(s => s.classList.remove(<span class="str">'active'</span>));
+  document.getElementById(screenId)
+    ?.classList.add(<span class="str">'active'</span>);
+  <span class="kw">if</span> (screenId === <span class="str">'screen-dashboard'</span>) loadAndRenderDash();
+}
+
+<span class="cm">// Chamada única e segura à API</span>
+<span class="kw">async function</span> <span class="fn">apiFetch</span>(url, options = {}) {
+  <span class="kw">const</span> res = <span class="kw">await</span> fetch(url, { credentials: <span class="str">'same-origin'</span>, ...options });
+  <span class="kw">return await</span> res.json();
+}</pre></div>
+    </div>
+  </section>
+
+  <!-- ── 9 · SEGURANÇA ── -->
+  <section class="slide future" data-title="Segurança" data-scene="side" style="--accent:var(--brass)">
+    <div class="chap rv"><i>6</i><span>Segurança</span></div>
+    <h2 class="rv" style="--d:1">Upload blindado e documentos protegidos</h2>
+    <div class="grid g3" style="max-width:1680px">
+      <div class="panel rv" style="--d:2;display:flex;flex-direction:column;gap:20px">
+        <div class="ico"><svg class="i"><use href="#scan"/></svg></div>
+        <h3>Tipo real do arquivo</h3>
+        <p style="font-size:27px;line-height:1.45">Extensão forjada não passa. O PHP lê os primeiros bytes com <code>finfo_file()</code> e só libera PDF, PNG ou JPG.</p>
+        <span class="tag" style="margin-top:auto;font-size:22px">Bloqueia .php e .exe</span>
+      </div>
+      <div class="panel rv" style="--d:3;display:flex;flex-direction:column;gap:20px">
+        <div class="ico"><svg class="i"><use href="#dice"/></svg></div>
+        <h3>Nome aleatório em disco</h3>
+        <p style="font-size:27px;line-height:1.45">Cada arquivo é salvo com <code>random_bytes(16)</code>. Ninguém adivinha o endereço do documento de outro aluno.</p>
+        <span class="tag" style="margin-top:auto;font-size:22px;font-family:var(--font-mono)">8fbc4e29b10…pdf</span>
+      </div>
+      <div class="panel rv" style="--d:4;display:flex;flex-direction:column;gap:20px">
+        <div class="ico"><svg class="i"><use href="#ban"/></svg></div>
+        <h3>Pasta isolada</h3>
+        <p style="font-size:27px;line-height:1.45">O <code>.htaccess</code> nega acesso direto pela web (<code>Require all denied</code>). Só abre com sessão válida.</p>
+        <span class="tag" style="margin-top:auto;font-size:22px">Sem vazamento pela web</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 10 · RESULTADOS ── -->
+  <section class="slide future" data-title="Resultados" data-scene="side">
+    <div class="chap rv"><i>7</i><span>Resultados</span></div>
+    <h2 class="rv" style="--d:1">Módulos entregues e validados</h2>
+    <div class="grid g2" style="max-width:1680px;gap:24px">
+      <div class="panel rv" style="--d:2;padding:30px 38px"><h3 style="display:flex;align-items:center;gap:16px;margin-bottom:18px"><svg class="i" style="width:44px;height:44px;color:var(--mint)"><use href="#chart"/></svg>Painel e consulta ágil</h3>
+        <ul class="ck"><li style="font-size:26px"><svg class="i"><use href="#check"/></svg>Totais de alunos e documentos na hora</li><li style="font-size:26px"><svg class="i"><use href="#check"/></svg>Filtros juntos por nome, CPF e responsável</li><li style="font-size:26px"><svg class="i"><use href="#check"/></svg>Consultas em menos de 1 segundo</li></ul></div>
+      <div class="panel rv" style="--d:3;padding:30px 38px"><h3 style="display:flex;align-items:center;gap:16px;margin-bottom:18px"><svg class="i" style="width:44px;height:44px;color:var(--mint)"><use href="#file"/></svg>Prontuário digital integrado</h3>
+        <ul class="ck"><li style="font-size:26px"><svg class="i"><use href="#check"/></svg>Certidões, RG e laudos anexados em PDF ou imagem</li><li style="font-size:26px"><svg class="i"><use href="#check"/></svg>Visualizador dentro da própria tela</li><li style="font-size:26px"><svg class="i"><use href="#check"/></svg>Exclusão registrada com o nome do operador</li></ul></div>
+      <div class="panel rv" style="--d:4;padding:30px 38px"><h3 style="display:flex;align-items:center;gap:16px;margin-bottom:18px"><svg class="i" style="width:44px;height:44px;color:var(--mint)"><use href="#print"/></svg>Exportação com um clique</h3>
+        <ul class="ck"><li style="font-size:26px"><svg class="i"><use href="#check"/></svg>PDF em A4 (jsPDF e AutoTable)</li><li style="font-size:26px"><svg class="i"><use href="#check"/></svg>CSV para Excel com UTF-8 BOM</li><li style="font-size:26px"><svg class="i"><use href="#check"/></svg>Relatórios com identificação e data</li></ul></div>
+      <div class="panel rv" style="--d:5;padding:30px 38px"><h3 style="display:flex;align-items:center;gap:16px;margin-bottom:18px"><svg class="i" style="width:44px;height:44px;color:var(--mint)"><use href="#shield-ok"/></svg>Rastreabilidade e auditoria</h3>
+        <ul class="ck"><li style="font-size:26px"><svg class="i"><use href="#check"/></svg>Toda ação de escrita fica registrada</li><li style="font-size:26px"><svg class="i"><use href="#check"/></svg>IP e usuário responsável identificados</li><li style="font-size:26px"><svg class="i"><use href="#check"/></svg>Alinhado às diretrizes da LGPD</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ── 11 · COMPARATIVO ── -->
+  <section class="slide future" data-title="Comparativo" data-scene="side" style="--accent:var(--brass)">
+    <div class="chap rv"><i>8</i><span>Análise comparativa</span></div>
+    <h2 class="rv" style="--d:1">SAGE frente às alternativas</h2>
+    <div class="panel rv" style="--d:2;padding:12px 18px;max-width:1680px">
+      <table>
+        <thead><tr><th>Critério</th><th class="us">SAGE</th><th>Sistemas ERP comerciais</th><th>Pastas de papel</th></tr></thead>
+        <tbody>
+          <tr><td>Custo de licença</td><td class="us">R$ 0,00</td><td class="bad">R$ 500 a R$ 2.500 por mês</td><td>Papel e espaço físico</td></tr>
+          <tr><td>Velocidade de busca</td><td class="us">Menos de 1 segundo</td><td class="warn">Varia conforme o plano</td><td class="bad">Horas ou dias</td></tr>
+          <tr><td>Prontuário com upload</td><td class="us">Nativo e seguro</td><td class="warn">Módulo cobrado à parte</td><td class="bad">Só vias físicas</td></tr>
+          <tr><td>Auditoria e LGPD</td><td class="us">Log de auditoria e perfis</td><td>Presente na maioria</td><td class="bad">Inexistente</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 12 · CONCLUSÃO ── -->
+  <section class="slide future" data-title="Conclusão" data-scene="side">
+    <div class="chap rv"><i>9</i><span>Conclusão</span></div>
+    <h2 class="rv" style="--d:1">Conclusões e trabalhos futuros</h2>
+    <div class="grid g2" style="max-width:1680px;gap:36px">
+      <div class="rv" style="--d:2"><p class="kicker">O que alcançamos</p>
+        <div class="rows panel" style="padding:12px 38px">
+          <div class="row" style="padding:24px 0"><p style="font-size:28px;color:var(--ink)">O SAGE troca as fichas de papel por uma solução moderna, ágil e protegida.</p></div>
+          <div class="row" style="padding:24px 0"><p style="font-size:28px;color:var(--ink)">A arquitetura dispensa dependências pesadas e roda leve em servidor local.</p></div>
+          <div class="row" style="padding:24px 0"><p style="font-size:28px;color:var(--ink)">Prepared statements, bcrypt, perfis e auditoria atendem os preceitos da LGPD.</p></div>
+        </div></div>
+      <div class="rv" style="--d:3"><p class="kicker" style="color:var(--brass)">Próximos passos</p>
+        <div class="rows panel" style="padding:12px 38px">
+          <div class="row" style="padding:24px 0;gap:24px"><div class="ico" style="--accent:var(--brass);width:60px;height:60px;font-size:32px;border-radius:18px"><svg class="i"><use href="#bell"/></svg></div><p style="font-size:28px"><strong>Alertas automáticos</strong> para pendências e documentos vencidos.</p></div>
+          <div class="row" style="padding:24px 0;gap:24px"><div class="ico" style="--accent:var(--brass);width:60px;height:60px;font-size:32px;border-radius:18px"><svg class="i"><use href="#phone"/></svg></div><p style="font-size:28px"><strong>Versão para tablet e celular</strong> no atendimento de balcão.</p></div>
+          <div class="row" style="padding:24px 0;gap:24px"><div class="ico" style="--accent:var(--brass);width:60px;height:60px;font-size:32px;border-radius:18px"><svg class="i"><use href="#cloud"/></svg></div><p style="font-size:28px"><strong>Publicação em nuvem</strong> com réplica e backup automático fora do colégio.</p></div>
+        </div></div>
+    </div>
+  </section>
+
+  <!-- ── 13 · ENCERRAMENTO ── -->
+  <section class="slide closing future" data-title="Equipe" data-scene="hero">
+    <p class="kicker rv">Colégio Comercial Caçapava, TCC 2026</p>
+    <h2 class="rv" style="--d:1">Muito obrigado!</h2>
+    <p class="lead rv" style="--d:2">Estamos à disposição para as perguntas e considerações da banca.</p>
+    <p class="kicker rv" style="--d:3;color:var(--muted)">Integrantes do projeto</p>
+    <div class="names rv" style="--d:3"><span>Alanis</span><span>João Pedro</span><span>Maitê</span><span>Pedro Tosetto</span><span>Sara</span></div>
+    <div class="rv" style="--d:4;display:flex;gap:14px;flex-wrap:wrap;max-width:1100px">
+      <span class="tag"><svg class="i"><use href="#check"/></svg>CRUD completo</span>
+      <span class="tag"><svg class="i"><use href="#check"/></svg>Upload blindado</span>
+      <span class="tag"><svg class="i"><use href="#check"/></svg>Auditoria e LGPD</span>
+      <span class="tag"><svg class="i"><use href="#check"/></svg>PDF e CSV nativos</span>
+    </div>
+  </section>
+
+  <!-- ── Navegação ── -->
+  <div id="nav">
+    <button class="nb" id="prev" aria-label="Slide anterior"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div id="dots"></div>
+    <span id="count">1 / 13</span>
+    <button class="nb" id="next" aria-label="Próximo slide"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+  </div>
+</div>
+<script>
+/* ═════════════ Navegação ═════════════ */
+(function () {
+  'use strict';
+  const stage   = document.getElementById('stage');
+  const slides  = Array.from(document.querySelectorAll('.slide'));
+  const total   = slides.length;
+  const dotsEl  = document.getElementById('dots');
+  const countEl = document.getElementById('count');
+  const progEl  = document.getElementById('progress');
+  let current = 0;
+
+  // O palco é fixo em 1920×1080 e escala para caber em qualquer TV/projetor.
+  function fit() {
+    const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+    stage.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+  }
+  addEventListener('resize', fit); fit();
+
+  slides.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i === 0 ? ' on' : '');
+    d.title = s.dataset.title || '';
+    d.addEventListener('click', () => go(i));
+    dotsEl.appendChild(d);
+  });
+  const dots = Array.from(dotsEl.children);
+
+  function go(i) {
+    current = Math.max(0, Math.min(total - 1, i));
+    slides.forEach((s, k) => {
+      s.classList.toggle('active', k === current);
+      s.classList.toggle('past',   k < current);
+      s.classList.toggle('future', k > current);
+    });
+    dots.forEach((d, k) => d.classList.toggle('on', k === current));
+    countEl.textContent = (current + 1) + ' / ' + total;
+    progEl.style.width = ((current + 1) / total * 100) + '%';
+    document.dispatchEvent(new CustomEvent('slidechange', { detail: { index: current, total, scene: slides[current].dataset.scene } }));
+  }
+  document.getElementById('next').onclick = () => go(current + 1);
+  document.getElementById('prev').onclick = () => go(current - 1);
+
+  addEventListener('keydown', e => {
+    if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter'].includes(e.key)) { e.preventDefault(); go(current + 1); }
+    else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key))   { e.preventDefault(); go(current - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); go(0); }
+    else if (e.key === 'End')  { e.preventDefault(); go(total - 1); }
+    else if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.(); else document.exitFullscreen?.();
+    }
+  });
+
+  // Gesto de arrastar (touch/caneta/mouse): decide pela velocidade projetada, não só pela distância.
+  let sx = 0, st = 0, tracking = false;
+  stage.addEventListener('pointerdown', e => { if (e.target.closest('#nav')) return; tracking = true; sx = e.clientX; st = performance.now(); });
+  addEventListener('pointerup', e => {
+    if (!tracking) return; tracking = false;
+    const dx = e.clientX - sx, dt = Math.max(performance.now() - st, 1);
+    const projected = dx + (dx / dt) * 220;          // para onde o gesto "iria" parar
+    if (Math.abs(projected) > 140 && Math.abs(dx) > 30) go(current + (projected < 0 ? 1 : -1));
+  });
+
+  go(0);
+})();
+
+/* ═════════════ Fichário 3D de fundo (three.js r128) ═════════════
+   O progresso da apresentação vira o "folhear" do fichário:
+   a cada slide, mais fichas tombam para a frente.
+   Se o three.js não carregar (sem internet), o fundo em CSS continua. */
+(function () {
+  'use strict';
+  function boot() {
+    const canvas = document.getElementById('bg3d');
+    if (!canvas) return;
+    if (typeof THREE === 'undefined') { canvas.style.display = 'none'; return; }
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let renderer;
+    try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); }
+    catch (e) { canvas.style.display = 'none'; return; }
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    renderer.setClearColor(0x000000, 0);
+    if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
+
+    class Spring {
+      constructor(x, k, z) { this.x = x; this.v = 0; this.t = x; this.k = k; this.c = 2 * z * Math.sqrt(k); }
+      step(dt) { this.v += (-this.k * (this.x - this.t) - this.c * this.v) * dt; this.x += this.v * dt; }
+      get settled() { return Math.abs(this.x - this.t) < 8e-4 && Math.abs(this.v) < 8e-4; }
+    }
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x071a14, 8, 19);
+    const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 60);
+    camera.position.set(0, 2.7, 8.6);
+    scene.add(new THREE.HemisphereLight(0xdff5ea, 0x0b2a20, 0.95));
+    const key = new THREE.DirectionalLight(0xffffff, 0.85); key.position.set(3.5, 6, 5); scene.add(key);
+    const rim = new THREE.PointLight(0x4fd1a1, 0.9, 14);    rim.position.set(-4, 2.5, -3); scene.add(rim);
+
+    const ACC = ['#1b6b4b', '#24885f', '#6fbf9b', '#155239', '#c9962e'];
+    function face(a) {
+      const c = document.createElement('canvas'); c.width = 512; c.height = 330;
+      const g = c.getContext('2d');
+      g.fillStyle = '#f4f8f5'; g.fillRect(0, 0, 512, 330);
+      g.fillStyle = a; g.fillRect(0, 0, 512, 46);
+      g.strokeStyle = '#b9cbc1'; g.lineWidth = 3; g.strokeRect(34, 80, 92, 118);
+      g.fillStyle = '#d5e2db'; g.beginPath(); g.arc(80, 122, 20, 0, 6.283); g.fill();
+      g.beginPath(); g.ellipse(80, 184, 34, 26, 0, Math.PI, 0); g.fill();
+      g.fillStyle = '#c3d3ca';
+      [[160, 92, 250], [160, 128, 190], [160, 164, 280], [34, 232, 440], [34, 266, 360], [34, 300, 410]].forEach(r => g.fillRect(r[0], r[1], r[2], 9));
+      const t = new THREE.CanvasTexture(c); t.anisotropy = 4;
+      if (THREE.sRGBEncoding) t.encoding = THREE.sRGBEncoding;
+      return t;
+    }
+    const faceM = ACC.map(a => new THREE.MeshStandardMaterial({ map: face(a), roughness: .85 }));
+    const edgeM = new THREE.MeshStandardMaterial({ color: 0xe9f1ec, roughness: .9 });
+    const tabM  = ACC.map(a => new THREE.MeshStandardMaterial({ color: new THREE.Color(a), roughness: .7 }));
+    const W = 2.3, H = 1.45, T = .025;
+    const cardG = new THREE.BoxGeometry(W, H, T); cardG.translate(0, H / 2, 0);
+    const tabG  = new THREE.BoxGeometry(.56, .15, T); tabG.translate(0, .075, 0);
+
+    const N = 34, GAP = .17, LEAN = -.05;
+    const root = new THREE.Group(); scene.add(root);
+    const cards = [];
+    for (let i = 0; i < N; i++) {
+      const v = (i * 7 + 3) % ACC.length;
+      const m = new THREE.Mesh(cardG, [edgeM, edgeM, edgeM, edgeM, faceM[v], faceM[v]]);
+      const tab = new THREE.Mesh(tabG, tabM[v]);
+      tab.position.set(((i * .37) % 1) * 1.55 - .78, H, 0); m.add(tab);
+      m.position.z = (i - N / 2) * GAP; root.add(m);
+      cards.push({ m, ang: new Spring(-1.4, 150, .85), lift: new Spring(-.9, 150, .9), delay: .3 + i * .03 });
+    }
+
+    // estado dirigido pelos slides
+    const pS   = new Spring(N * .12, 70, 1);       // quanto do fichário já foi folheado
+    const xS   = new Spring(.55, 60, 1);           // posição horizontal (fração da meia-largura)
+    const scS  = new Spring(1, 60, 1);
+    const opS  = new Spring(1, 50, 1);
+    const rotS = new Spring(-.58, 50, 1);
+    const lookS = new Spring(0, 50, 1);
+
+    function targets(p) {
+      for (let j = 0; j < N; j++) {
+        const d = j - p, f = THREE.MathUtils.smoothstep(d, 0, 10), c = cards[j];
+        c.ang.t = LEAN + 1.3 * f;
+        c.lift.t = f * Math.max(d, 0) * .036 + .11 * Math.exp(-(d * d) / 5);
+      }
+    }
+
+    let raf = 0, last = 0, clock = 0, vis = true;
+    function frame(now) {
+      raf = 0;
+      const dt = Math.min((now - last) / 1000, 1 / 30) || 1 / 60; last = now; clock += dt;
+      const h = dt / 2;
+      for (let s = 0; s < 2; s++) { [pS, xS, scS, opS, rotS, lookS].forEach(sp => sp.step(h)); cards.forEach(c => { c.ang.step(h); c.lift.step(h); }); }
+      targets(pS.x);
+      let moving = clock < cards[N - 1].delay + .1;
+      cards.forEach(c => {
+        if (clock < c.delay) { c.ang.t = -1.4; c.lift.t = -.9; }
+        c.m.rotation.x = c.ang.x; c.m.position.y = c.lift.x;
+        if (!c.ang.settled || !c.lift.settled) moving = true;
+      });
+      const halfW = Math.tan(camera.fov * Math.PI / 360) * 8.6 * camera.aspect;
+      root.position.set(xS.x * halfW, -.2, 0);
+      root.scale.setScalar(scS.x * Math.min(1, camera.aspect / 1.78 + .15));
+      root.rotation.y = rotS.x;
+      camera.position.y = 2.7 + lookS.x; camera.lookAt(0, .75, 0);
+      canvas.style.opacity = opS.x.toFixed(3);
+      if (![pS, xS, scS, opS, rotS, lookS].every(s => s.settled)) moving = true;
+      renderer.render(scene, camera);
+      if (moving && vis) raf = requestAnimationFrame(frame);
+    }
+    function wake() { if (raf) return; last = performance.now(); raf = requestAnimationFrame(frame); }
+
+    function layout() {
+      renderer.setSize(innerWidth, innerHeight, false);
+      camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); wake();
+    }
+    addEventListener('resize', layout);
+    document.addEventListener('visibilitychange', () => { vis = !document.hidden; if (vis) wake(); });
+
+    // cada slide escolhe a "cena": hero (capa/final) ou side (conteúdo, discreto)
+    document.addEventListener('slidechange', e => {
+      const { index, total, scene: sc } = e.detail;
+      const prog = index / (total - 1);
+      pS.t = N * (.12 + .8 * prog);
+      if (sc === 'hero') { xS.t = .52; scS.t = 1;   opS.t = 1;   rotS.t = -.58; }
+      else               { xS.t = .62; scS.t = .86; opS.t = .5;  rotS.t = -.5 - prog * .25; }
+      wake();
+    });
+    addEventListener('pointermove', e => {
+      if (reduce) return;
+      lookS.t = (.5 - e.clientY / innerHeight) * .4;
+      wake();
+    }, { passive: true });
+
+    targets(pS.x);
+    layout();
+    if (reduce) {                                    // sem animação: estado final direto
+      cards.forEach(c => { c.ang.x = c.ang.t; c.lift.x = c.lift.t; c.delay = 0; });
+      clock = 99;
+    }
+    wake();
+  }
+  // three.js usa "defer": roda antes de DOMContentLoaded
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+</body>
+</html>
